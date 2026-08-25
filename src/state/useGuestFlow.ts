@@ -148,6 +148,17 @@ export function useGuestFlow(): UseGuestFlowResult {
   // the guest's in-progress crop instead of forcing a full reselect.
   const lastEditableRef = useRef<{ image: WorkingImage; transform: Transform } | null>(null);
 
+  // Guards against a second concurrent navigator.share() call. A native
+  // share sheet is normally modal and blocks the page while open on the
+  // target browsers, but nothing guarantees that on every browser, and
+  // EditingScreen's own re-enable timer is a fixed cooldown rather than
+  // tied to actual completion. Calling navigator.share() again while one
+  // is already pending rejects with InvalidStateError on most browsers,
+  // which attemptShare would otherwise misclassify as a genuine failure
+  // and bounce the guest to the fallback screen out from under a share
+  // that may still be in progress.
+  const sharePendingRef = useRef(false);
+
   const decodeOpIdRef = useRef(0);
   const decodeAbortRef = useRef<AbortController | null>(null);
   const exportOpIdRef = useRef(0);
@@ -341,7 +352,14 @@ export function useGuestFlow(): UseGuestFlowResult {
   }, []);
 
   const attemptShare = useCallback((exported: ExportedImage) => {
+    if (sharePendingRef.current) {
+      // A share is already in flight; ignore the extra tap rather than
+      // firing a second concurrent navigator.share() call.
+      return;
+    }
+    sharePendingRef.current = true;
     shareService.share(exported).then((outcome) => {
+      sharePendingRef.current = false;
       if (outcome.result === 'shared' || outcome.result === 'cancelled') {
         // Success: stay put. Cancellation is a normal outcome, not a
         // failure. Either way the guest can share again or change photo.
