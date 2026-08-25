@@ -527,4 +527,73 @@ describe('useGuestFlow: sharing and fallback', () => {
     (navigator as { share?: unknown }).share = originalShare;
     void exported;
   });
+
+  it("sets confirmation to 'shared' after a successful share, then clears it on its own", async () => {
+    navigator.share = vi.fn().mockResolvedValue(undefined);
+    navigator.canShare = () => true;
+
+    const { hook } = await getToReady();
+    vi.useFakeTimers();
+    expect(hook.result.current.confirmation).toBeNull();
+
+    await act(async () => {
+      hook.result.current.saveOrShare();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(hook.result.current.confirmation).toBe('shared');
+
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+    expect(hook.result.current.confirmation).toBeNull();
+
+    vi.useRealTimers();
+  });
+
+  it("sets confirmation to 'saved' after download(), not 'shared'", async () => {
+    const originalShare = (navigator as { share?: unknown }).share;
+    // @ts-expect-error simulating an unsupported browser, forcing fallbackSave
+    delete navigator.share;
+
+    const { hook } = await getToReady();
+    vi.useFakeTimers();
+    await act(async () => {
+      hook.result.current.saveOrShare();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(hook.result.current.state.status).toBe('fallbackSave');
+    expect(hook.result.current.confirmation).toBeNull();
+
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    act(() => {
+      hook.result.current.download();
+    });
+    expect(hook.result.current.confirmation).toBe('saved');
+
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+    expect(hook.result.current.confirmation).toBeNull();
+
+    clickSpy.mockRestore();
+    (navigator as { share?: unknown }).share = originalShare;
+    vi.useRealTimers();
+  });
+
+  it('does not set any confirmation when the guest cancels the share sheet', async () => {
+    navigator.share = vi.fn().mockRejectedValue(new DOMException('cancelled', 'AbortError'));
+    navigator.canShare = () => true;
+
+    const { hook } = await getToReady();
+    await act(async () => {
+      hook.result.current.saveOrShare();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(hook.result.current.state.status).toBe('ready');
+    expect(hook.result.current.confirmation).toBeNull();
+  });
 });

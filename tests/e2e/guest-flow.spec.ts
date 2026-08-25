@@ -135,3 +135,29 @@ test('an unsupported share target falls back to the manual-save screen, and back
   // "Preparing photo…" until the guest happens to touch the transform.
   await expect(page.getByRole('button', { name: 'Save or share' })).toBeEnabled();
 });
+
+test('clicking Download on the fallback screen shows a self-dismissing "Saved!" confirmation', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window.navigator, 'share', { value: undefined, configurable: true });
+  });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Choose a photo' })).toBeEnabled({
+    timeout: 5000,
+  });
+  await page
+    .locator('input[type="file"]')
+    .nth(1)
+    .setInputFiles(path.join(FIXTURES_DIR, 'portrait.jpg'));
+
+  const shareButton = page.getByRole('button', { name: 'Save or share' });
+  await expect(shareButton).toBeEnabled({ timeout: 5000 });
+  await shareButton.click();
+  await expect(page.getByRole('button', { name: 'Download' })).toBeVisible();
+
+  await expect(page.getByText('Saved!')).not.toBeVisible();
+  await page.getByRole('button', { name: 'Download' }).click();
+  await expect(page.getByText('Saved!')).toBeVisible();
+  await expect(page.getByText('Saved!')).not.toBeVisible({ timeout: 4000 });
+});

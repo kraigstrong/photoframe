@@ -11,6 +11,7 @@ export default function FallbackScreen({
   onDownload,
   onBackToEditing,
   onTryShareAgain,
+  confirmation,
 }: FallbackScreenProps) {
   return (
     <main className={styles.shell}>
@@ -36,6 +37,12 @@ export default function FallbackScreen({
           Back to editing
         </button>
       </div>
+
+      {confirmation ? (
+        <p className={styles.confirmation} role="status" aria-live="polite">
+          {confirmation === 'shared' ? 'Shared!' : 'Saved!'}
+        </p>
+      ) : null}
     </main>
   );
 }

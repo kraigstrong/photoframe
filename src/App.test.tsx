@@ -26,6 +26,7 @@ function baseFlow(overrides: Partial<UseGuestFlowResult>): UseGuestFlowResult {
     instruction: eventConfig.instruction,
     privacyMessage: eventConfig.privacyMessage,
     cameraFacing: eventConfig.cameraFacing,
+    confirmation: null,
     selectFile: vi.fn(),
     updateTransform: vi.fn(),
     resetPosition: vi.fn(),

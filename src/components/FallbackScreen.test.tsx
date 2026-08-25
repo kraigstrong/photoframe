@@ -23,6 +23,7 @@ function makeProps(overrides: Partial<FallbackScreenProps> = {}): FallbackScreen
     onDownload: vi.fn(),
     onBackToEditing: vi.fn(),
     onTryShareAgain: vi.fn(),
+    confirmation: null,
     ...overrides,
   };
 }
@@ -62,5 +63,21 @@ describe('FallbackScreen', () => {
     render(<FallbackScreen {...makeProps({ onBackToEditing })} />);
     await user.click(screen.getByRole('button', { name: 'Back to editing' }));
     expect(onBackToEditing).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a "Saved!" confirmation when confirmation is "saved"', () => {
+    render(<FallbackScreen {...makeProps({ confirmation: 'saved' })} />);
+    expect(screen.getByText('Saved!')).toBeInTheDocument();
+  });
+
+  it('shows a "Shared!" confirmation when confirmation is "shared" (e.g. after "Try sharing again" succeeds)', () => {
+    render(<FallbackScreen {...makeProps({ confirmation: 'shared' })} />);
+    expect(screen.getByText('Shared!')).toBeInTheDocument();
+  });
+
+  it('shows no confirmation text when confirmation is null', () => {
+    render(<FallbackScreen {...makeProps({ confirmation: null })} />);
+    expect(screen.queryByText('Shared!')).not.toBeInTheDocument();
+    expect(screen.queryByText('Saved!')).not.toBeInTheDocument();
   });
 });

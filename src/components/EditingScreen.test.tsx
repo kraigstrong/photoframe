@@ -41,6 +41,7 @@ function makeProps(overrides: Partial<EditingScreenProps> = {}): EditingScreenPr
     onChangePhoto: vi.fn(),
     exportReady: true,
     onSaveOrShare: vi.fn(),
+    confirmation: null,
     ...overrides,
   };
 }
@@ -212,5 +213,16 @@ describe('EditingScreen', () => {
     expect(button).not.toBeDisabled();
 
     vi.useRealTimers();
+  });
+
+  it('shows a "Shared!" confirmation when confirmation is "shared"', () => {
+    renderWithMeasuredContainer(makeProps({ confirmation: 'shared' }));
+    expect(screen.getByText('Shared!')).toBeInTheDocument();
+  });
+
+  it('shows no confirmation text when confirmation is null', () => {
+    renderWithMeasuredContainer(makeProps({ confirmation: null }));
+    expect(screen.queryByText('Shared!')).not.toBeInTheDocument();
+    expect(screen.queryByText('Saved!')).not.toBeInTheDocument();
   });
 });
