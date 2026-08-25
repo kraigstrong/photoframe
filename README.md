@@ -25,6 +25,7 @@ npm run dev
 | `npm run format`                           | Format with Prettier                                          |
 | `npm run format:check`                     | Verify formatting                                             |
 | `npm test`                                 | Unit and component tests                                      |
+| `npm run test:e2e`                         | Browser tests (Playwright) — builds first automatically       |
 | `npm run generate:qr -- --url <https-url>` | Generate printable QR codes into `qr/`                        |
 
 ## Configuring the event
@@ -77,6 +78,13 @@ Test the printed QR at its actual intended size and contrast before the event.
 Static Vite output deployed to Vercel. No server runtime, no serverless functions. See
 [`vercel.json`](vercel.json).
 
+1. Connect this repository to a Vercel project (framework preset: Vite; build command and output
+   directory are already set in `vercel.json`).
+2. Deploy. Vercel serves the production build over HTTPS automatically.
+3. Confirm the deployed URL loads and that reloading the page (not just the initial load) works.
+4. That URL — the stable production domain, not a preview-deployment URL — is the canonical URL.
+   Generate the QR from it (see [QR code](#qr-code) above) only once it's final.
+
 ## Architecture
 
 | Path                | Ownership                                                  |
@@ -111,3 +119,25 @@ browsers work for choosing an existing image but are not the primary experience.
 Automated tests and emulation **cannot** validate the native camera picker, share sheet, saving to
 Photos, or large-photo memory behavior. Those require physical-device testing on at least one
 iPhone/Safari and one Android/Chrome device before a real event.
+
+## Physical-device checklist
+
+Required on one iPhone/Safari and one Android/Chrome device before this is event-ready — not
+optional, and not something CI or Playwright can substitute for:
+
+- [ ] Scan the final printed (or on-screen) QR and load the production URL.
+- [ ] Take a new photo, both portrait and landscape.
+- [ ] Choose an existing photo, both portrait and landscape, including a high-resolution one.
+- [ ] On iPhone: choose an ordinary HEIC photo from the library.
+- [ ] Preview orientation is correct for every case above.
+- [ ] Drag and zoom the photo; no empty edge ever appears.
+- [ ] Exported image has the correct overlay alignment and resolution.
+- [ ] Native share sheet opens with the image attached; save to Photos/Gallery succeeds.
+- [ ] Cancel the share sheet, then retry successfully.
+- [ ] Exercise the fallback save path (e.g. by declining/failing the share sheet).
+- [ ] Retake and re-select the same photo; the app accepts it again.
+- [ ] Repeat the full flow three times in a row without a reload or crash.
+
+Strongly recommended in addition: Samsung Internet, an older supported iPhone, low-power mode, and
+loading over poor event Wi-Fi/cellular (then switching to airplane mode to confirm editing/export
+still work once the page and overlay have loaded).
