@@ -14,6 +14,7 @@ import {
   MIN_RELATIVE_ZOOM,
 } from '../lib/image/index.ts';
 import type { Transform } from '../lib/image/types.ts';
+import Toast from './Toast.tsx';
 import type { EditingScreenProps } from './types.ts';
 import styles from './EditingScreen.module.css';
 
@@ -261,12 +262,8 @@ export default function EditingScreen({
             Preparing photo…
           </p>
         )}
-        {confirmation ? (
-          <p className={styles.confirmation} role="status" aria-live="polite">
-            {confirmation === 'shared' ? 'Shared!' : 'Saved!'}
-          </p>
-        ) : null}
       </div>
+      {confirmation ? <Toast message={confirmation === 'shared' ? 'Shared!' : 'Saved!'} /> : null}
     </main>
   );
 }

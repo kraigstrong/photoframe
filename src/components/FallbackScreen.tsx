@@ -1,3 +1,4 @@
+import Toast from './Toast.tsx';
 import type { FallbackScreenProps } from './types.ts';
 import styles from './FallbackScreen.module.css';
 
@@ -38,11 +39,7 @@ export default function FallbackScreen({
         </button>
       </div>
 
-      {confirmation ? (
-        <p className={styles.confirmation} role="status" aria-live="polite">
-          {confirmation === 'shared' ? 'Shared!' : 'Saved!'}
-        </p>
-      ) : null}
+      {confirmation ? <Toast message={confirmation === 'shared' ? 'Shared!' : 'Saved!'} /> : null}
     </main>
   );
 }
