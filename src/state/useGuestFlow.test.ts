@@ -310,6 +310,43 @@ describe('useGuestFlow: export failure and retry', () => {
     // recovered without asking the guest to reselect a photo.
     expect(mockedEngine.decode).toHaveBeenCalledTimes(1);
   });
+
+  it('recovers without a reselect even when the very first export attempt fails (no prior successful export)', async () => {
+    // Regression test: lastEditableRef used to be populated only inside a
+    // *successful* export's callback, so if the first-ever export attempt
+    // failed, retry had nothing to recover with and fell back to sending
+    // the guest all the way to idle — silently orphaning the still-valid
+    // WorkingImage (never released) in the process.
+    const image = makeWorkingImage();
+    mockedEngine.decode.mockResolvedValue(image);
+    mockedEngine.export.mockRejectedValueOnce(new Error('export exploded'));
+
+    const { result } = renderHook(() => useGuestFlow());
+    await loadOverlaySuccessfully();
+    act(() => {
+      result.current.selectFile(new File(['x'], 'x.jpg', { type: 'image/jpeg' }));
+    });
+    await waitFor(
+      () =>
+        expect(result.current.state).toMatchObject({
+          status: 'error',
+          error: { kind: 'exportFailed' },
+        }),
+      { timeout: 2000 },
+    );
+
+    mockedEngine.export.mockResolvedValueOnce(makeExportedImage());
+    act(() => {
+      result.current.retry();
+    });
+
+    // Retries with the same decoded image, not a forced return to idle —
+    // and never released it, so it's still the very same object.
+    expect(result.current.state).toMatchObject({ status: 'editing', image });
+    expect(image.release).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.state.status).toBe('ready'), { timeout: 2000 });
+    expect(mockedEngine.decode).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('useGuestFlow: sharing and fallback', () => {

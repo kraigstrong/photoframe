@@ -192,7 +192,10 @@ export function useGuestFlow(): UseGuestFlowResult {
           exported.release();
           return;
         }
-        lastEditableRef.current = { image, transform };
+        // lastEditableRef is kept up to date from decode success and every
+        // transform change (see selectFile/updateTransform), not from here
+        // — otherwise the very first export attempt failing would leave it
+        // null, with no way to retry without a full reselect.
         dispatch({ type: 'EXPORT_SUCCESS', exported });
       },
       () => {
@@ -256,6 +259,7 @@ export function useGuestFlow(): UseGuestFlowResult {
             eventConfig.outputWidth,
             eventConfig.outputHeight,
           );
+          lastEditableRef.current = { image, transform };
           dispatch({ type: 'DECODE_SUCCESS', image, transform });
           scheduleExport(image, transform);
         },
@@ -289,6 +293,7 @@ export function useGuestFlow(): UseGuestFlowResult {
       if (current.status === 'ready') {
         current.exported.release();
       }
+      lastEditableRef.current = { image, transform: next };
       dispatch({ type: 'TRANSFORM_CHANGED', transform: next });
       scheduleExport(image, next);
     },
