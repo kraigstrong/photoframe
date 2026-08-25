@@ -374,12 +374,12 @@ describe('useGuestFlow: sharing and fallback', () => {
     expect(hook.result.current.state).toMatchObject({ status: 'fallbackSave', exported });
   });
 
-  it('backToEditing from fallbackSave restores the prior image/transform', async () => {
+  it('backToEditing from fallbackSave restores straight to ready with the still-valid export (no re-encode, no stuck "Preparing…")', async () => {
     const originalShare = (navigator as { share?: unknown }).share;
     // @ts-expect-error simulating an unsupported browser
     delete navigator.share;
 
-    const { hook, image } = await getToReady();
+    const { hook, image, exported } = await getToReady();
     act(() => {
       hook.result.current.saveOrShare();
     });
@@ -388,9 +388,41 @@ describe('useGuestFlow: sharing and fallback', () => {
     act(() => {
       hook.result.current.backToEditing();
     });
-    expect(hook.result.current.state).toMatchObject({ status: 'editing', image });
+    // Immediately 'ready' (Save/Share enabled), not 'editing' — the crop
+    // didn't change, so there's nothing to re-export.
+    expect(hook.result.current.state).toMatchObject({ status: 'ready', image, exported });
+    expect(exported.release).not.toHaveBeenCalled();
 
     (navigator as { share?: unknown }).share = originalShare;
+  });
+
+  it('saveOrShare works immediately after backToEditing, without the guest touching the transform', async () => {
+    // Regression test: backToEditing used to restore 'editing' without ever
+    // scheduling a new export, leaving Save/Share disabled forever unless
+    // the guest happened to drag or use the zoom slider afterward.
+    const shareMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('share broke'))
+      .mockResolvedValue(undefined);
+    navigator.share = shareMock;
+    navigator.canShare = () => true;
+
+    const { hook } = await getToReady();
+    act(() => {
+      hook.result.current.saveOrShare();
+    });
+    await waitFor(() => expect(hook.result.current.state.status).toBe('fallbackSave'));
+    expect(shareMock).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      hook.result.current.backToEditing();
+    });
+    expect(hook.result.current.state.status).toBe('ready');
+
+    act(() => {
+      hook.result.current.saveOrShare();
+    });
+    expect(shareMock).toHaveBeenCalledTimes(2);
   });
 
   it('download() creates and clicks a temporary anchor pointing at the exported object URL', async () => {

@@ -131,4 +131,7 @@ test('an unsupported share target falls back to the manual-save screen, and back
   await expect(
     page.getByRole('group', { name: 'Drag to reposition the photo. Use arrow keys to move it.' }),
   ).toBeVisible();
+  // Regression: Save/Share must be immediately usable again, not stuck on
+  // "Preparing photo…" until the guest happens to touch the transform.
+  await expect(page.getByRole('button', { name: 'Save or share' })).toBeEnabled();
 });

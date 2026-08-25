@@ -47,7 +47,12 @@ type Action =
   | { type: 'EXPORT_FAILED' }
   | { type: 'CHANGE_PHOTO' }
   | { type: 'SHARE_UNAVAILABLE_OR_FAILED' }
-  | { type: 'BACK_TO_EDITING'; image: WorkingImage; transform: Transform }
+  | {
+      type: 'BACK_TO_EDITING';
+      image: WorkingImage;
+      transform: Transform;
+      exported: ExportedImage;
+    }
   | { type: 'RETRY_TO_IDLE' }
   | { type: 'RETRY_TO_EDITING'; image: WorkingImage; transform: Transform };
 
@@ -89,7 +94,16 @@ function reducer(state: AppState, action: Action): AppState {
         ? { status: 'fallbackSave', exported: state.exported }
         : state;
     case 'BACK_TO_EDITING':
-      return { status: 'editing', image: action.image, transform: action.transform };
+      // Restores 'ready' directly with the still-valid export from before
+      // the failed/unsupported share attempt (same image+transform, never
+      // released) — not 'editing', which would leave Save/Share disabled
+      // indefinitely until the guest happened to touch the transform.
+      return {
+        status: 'ready',
+        image: action.image,
+        transform: action.transform,
+        exported: action.exported,
+      };
     case 'RETRY_TO_IDLE':
       return { status: 'idle' };
     case 'RETRY_TO_EDITING':
@@ -387,7 +401,12 @@ export function useGuestFlow(): UseGuestFlowResult {
       dispatch({ type: 'CHANGE_PHOTO' });
       return;
     }
-    dispatch({ type: 'BACK_TO_EDITING', image: editable.image, transform: editable.transform });
+    dispatch({
+      type: 'BACK_TO_EDITING',
+      image: editable.image,
+      transform: editable.transform,
+      exported: current.exported,
+    });
   }, []);
 
   const retry = useCallback(() => {
