@@ -1,5 +1,5 @@
 import type { EventConfig } from './types.ts';
-import overlayAsset from '../assets/overlay-placeholder.png';
+import overlayAsset from '../assets/overlay-panther-prowl-2026.png';
 
 /**
  * The single configured event for this deployment.
