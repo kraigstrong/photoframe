@@ -31,8 +31,7 @@ function baseFlow(overrides: Partial<UseGuestFlowResult>): UseGuestFlowResult {
     updateTransform: vi.fn(),
     resetPosition: vi.fn(),
     changePhoto: vi.fn(),
-    share: vi.fn(),
-    save: vi.fn(),
+    saveOrShare: vi.fn(),
     retry: vi.fn(),
     download: vi.fn(),
     backToEditing: vi.fn(),
@@ -69,8 +68,7 @@ describe('App: renders the screen matching each AppState status', () => {
       baseFlow({ state: { status: 'editing', image: IMAGE, transform: { x: 0, y: 0, scale: 1 } } }),
     );
     render(<App />);
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Share' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save or share' })).toBeDisabled();
   });
 
   it('preparingExport -> EditingScreen with exportReady false', () => {
@@ -80,8 +78,7 @@ describe('App: renders the screen matching each AppState status', () => {
       }),
     );
     render(<App />);
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Share' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save or share' })).toBeDisabled();
   });
 
   it('ready -> EditingScreen with exportReady true', () => {
@@ -96,8 +93,7 @@ describe('App: renders the screen matching each AppState status', () => {
       }),
     );
     render(<App />);
-    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Share' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Save or share' })).toBeEnabled();
   });
 
   it('fallbackSave -> FallbackScreen', () => {

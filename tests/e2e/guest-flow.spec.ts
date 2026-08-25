@@ -40,7 +40,7 @@ test('guest can select a photo, see it composited under the overlay, and reach r
   await expect(overlay).toHaveAttribute('aria-hidden', 'true');
   await expect(overlay).toHaveJSProperty('style.transform', '');
 
-  const shareButton = page.getByRole('button', { name: 'Share' });
+  const shareButton = page.getByRole('button', { name: 'Save or share' });
   await expect(shareButton).toBeEnabled({ timeout: 5000 });
 });
 
@@ -118,7 +118,7 @@ test('an unsupported share target falls back to the manual-save screen, and back
     .nth(1)
     .setInputFiles(path.join(FIXTURES_DIR, 'portrait.jpg'));
 
-  const shareButton = page.getByRole('button', { name: 'Share' });
+  const shareButton = page.getByRole('button', { name: 'Save or share' });
   await expect(shareButton).toBeEnabled({ timeout: 5000 });
   await shareButton.click();
 
@@ -133,61 +133,7 @@ test('an unsupported share target falls back to the manual-save screen, and back
   ).toBeVisible();
   // Regression: Save/Share must be immediately usable again, not stuck on
   // "Preparing photo…" until the guest happens to touch the transform.
-  await expect(page.getByRole('button', { name: 'Share' })).toBeEnabled();
-});
-
-test('Save goes straight to the manual-save screen with the real photo visible, never opening the share sheet', async ({
-  page,
-}) => {
-  // Regression test (Codex review): Save used to fire a silent background
-  // download and stay on the editor — on iOS Safari that mechanism usually
-  // lands the file in Downloads/Files, not Photos, leaving the guest no way
-  // to actually finish saving to Photos. It must route through the same
-  // screen that shows the composited photo with "touch and hold" save
-  // instructions, and must never call navigator.share even when sharing is
-  // fully supported.
-  const shareCalls: unknown[] = [];
-  await page.exposeBinding('recordShareCall', () => {
-    shareCalls.push(true);
-  });
-  await page.addInitScript(() => {
-    Object.defineProperty(window.navigator, 'share', {
-      configurable: true,
-      value: (..._args: unknown[]) => {
-        (window as unknown as { recordShareCall: () => void }).recordShareCall();
-        return Promise.resolve();
-      },
-    });
-    Object.defineProperty(window.navigator, 'canShare', {
-      configurable: true,
-      value: () => true,
-    });
-  });
-  await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Choose a photo' })).toBeEnabled({
-    timeout: 5000,
-  });
-  await page
-    .locator('input[type="file"]')
-    .nth(1)
-    .setInputFiles(path.join(FIXTURES_DIR, 'portrait.jpg'));
-
-  const saveButton = page.getByRole('button', { name: 'Save' });
-  await expect(saveButton).toBeEnabled({ timeout: 5000 });
-  await saveButton.click();
-
-  await expect(
-    page.getByText('Touch and hold the image, then choose Save to Photos.'),
-  ).toBeVisible();
-  await expect(page.getByAltText('Your finished photo, ready to save')).toBeVisible();
-  const downloadButton = page.getByRole('button', { name: 'Download' });
-  await expect(downloadButton).toBeVisible();
-
-  const [download] = await Promise.all([page.waitForEvent('download'), downloadButton.click()]);
-  expect(download.suggestedFilename()).toMatch(/\.jpg$/);
-  await expect(page.getByText('Saved!')).toBeVisible();
-
-  expect(shareCalls).toHaveLength(0);
+  await expect(page.getByRole('button', { name: 'Save or share' })).toBeEnabled();
 });
 
 test('clicking Download on the fallback screen shows a self-dismissing "Saved!" confirmation', async ({
@@ -205,7 +151,7 @@ test('clicking Download on the fallback screen shows a self-dismissing "Saved!" 
     .nth(1)
     .setInputFiles(path.join(FIXTURES_DIR, 'portrait.jpg'));
 
-  const shareButton = page.getByRole('button', { name: 'Share' });
+  const shareButton = page.getByRole('button', { name: 'Save or share' });
   await expect(shareButton).toBeEnabled({ timeout: 5000 });
   await shareButton.click();
   await expect(page.getByRole('button', { name: 'Download' })).toBeVisible();
