@@ -8,25 +8,24 @@ import overlayAsset from '../assets/overlay-panther-prowl-2026.png';
  * `src/assets/overlay-placeholder.png`. See the README for overlay requirements.
  */
 export const eventConfig: EventConfig = {
-  eventName: 'Our Event',
-  pageTitle: 'Our Event — Photo Frame',
-  instruction:
-    "Take a photo or choose one you already took. We'll add the event frame on this device.",
-  privacyMessage: 'Your photo stays on this device. We do not upload or store it.',
+  eventName: 'Panther Prowl 2026',
+  pageTitle: 'Panther Prowl 2026 — Photo Frame',
+  instruction: 'We add the 2026 frame right here on your phone.',
+  privacyMessage: 'Your photo stays on your phone. It is not uploaded.',
   overlayAsset,
   outputWidth: 1080,
   outputHeight: 1350,
   jpegQuality: 0.92,
-  filenamePrefix: 'our-event',
+  filenamePrefix: 'panther-prowl-2026',
   cameraFacing: 'environment',
-  exportBackground: '#101014',
+  exportBackground: '#FBFAF6',
   theme: {
-    background: '#101014',
-    surface: '#1c1c22',
-    text: '#f5f5f7',
-    mutedText: '#a1a1aa',
-    accent: '#e0b64c',
-    accentText: '#1a1408',
+    background: '#FBFAF6',
+    surface: '#FFFFFF',
+    text: '#17201A',
+    mutedText: '#5F6B62',
+    accent: '#1E5B33',
+    accentText: '#FFFFFF',
   },
 };
 

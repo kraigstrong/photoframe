@@ -40,6 +40,7 @@ export default function App() {
           eventName={flow.eventName}
           instruction={flow.instruction}
           privacyMessage={flow.privacyMessage}
+          overlaySrc={flow.overlaySrc}
           cameraFacing={flow.cameraFacing}
           overlayReady={flow.overlayReady}
           onSelectFile={flow.selectFile}
@@ -53,6 +54,7 @@ export default function App() {
     case 'preparingExport':
       return (
         <EditingScreen
+          eventName={flow.eventName}
           image={state.image}
           overlaySrc={flow.overlaySrc}
           outputWidth={eventConfig.outputWidth}
@@ -70,6 +72,7 @@ export default function App() {
     case 'ready':
       return (
         <EditingScreen
+          eventName={flow.eventName}
           image={state.image}
           overlaySrc={flow.overlaySrc}
           outputWidth={eventConfig.outputWidth}

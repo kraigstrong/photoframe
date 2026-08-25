@@ -65,6 +65,7 @@ function distanceBetween(a: PointerPoint, b: PointerPoint): number {
  * implements.
  */
 export default function EditingScreen({
+  eventName,
   image,
   overlaySrc,
   outputWidth,
@@ -303,6 +304,14 @@ export default function EditingScreen({
 
   return (
     <main className={styles.shell}>
+      <div className={styles.header}>
+        <button type="button" className={styles.backButton} onClick={onChangePhoto}>
+          Back
+        </button>
+        <span className={styles.headerLabel}>{eventName}</span>
+        <span aria-hidden="true" />
+      </div>
+
       <div
         ref={containerRef}
         className={styles.preview}
@@ -338,6 +347,7 @@ export default function EditingScreen({
         </label>
         <input
           id="editing-zoom-slider"
+          className={styles.zoomSlider}
           type="range"
           min={MIN_RELATIVE_ZOOM}
           max={MAX_RELATIVE_ZOOM}
@@ -366,11 +376,9 @@ export default function EditingScreen({
         >
           Save or share
         </button>
-        {exportReady ? null : (
-          <p className={styles.preparingMessage} aria-live="polite">
-            Preparing photo…
-          </p>
-        )}
+        <p className={styles.helperMessage} aria-live="polite">
+          {exportReady ? 'Choose Save Image to keep it, or pick an app to share it.' : 'Preparing photo…'}
+        </p>
       </div>
       {confirmation ? <Toast message="All set!" /> : null}
     </main>

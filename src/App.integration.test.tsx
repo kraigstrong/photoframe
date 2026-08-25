@@ -11,9 +11,10 @@ import { eventConfig } from './config/index.ts';
  * is covered in App.test.tsx against a mocked hook instead.
  */
 describe('App shell (idle/LandingScreen, via the real hook)', () => {
-  it('renders the event name as the page heading', () => {
+  it('renders the event name and a page heading', () => {
     render(<App />);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(eventConfig.eventName);
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+    expect(screen.getByText(eventConfig.eventName)).toBeInTheDocument();
   });
 
   it('shows the instruction and privacy message', () => {

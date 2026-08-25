@@ -12,6 +12,7 @@ export default function LandingScreen({
   eventName,
   instruction,
   privacyMessage,
+  overlaySrc,
   cameraFacing,
   overlayReady,
   onSelectFile,
@@ -31,8 +32,13 @@ export default function LandingScreen({
 
   return (
     <main className={styles.shell}>
-      <h1 className={styles.title}>{eventName}</h1>
+      <p className={styles.eyebrow}>{eventName}</p>
+      <h1 className={styles.headline}>Frame your photo</h1>
       <p className={styles.instruction}>{instruction}</p>
+
+      <div className={styles.preview} aria-hidden="true">
+        <img src={overlaySrc} alt="" className={styles.previewOverlay} />
+      </div>
 
       <div className={styles.actions}>
         <button
@@ -41,6 +47,9 @@ export default function LandingScreen({
           disabled={!overlayReady}
           onClick={() => cameraInputRef.current?.click()}
         >
+          <span className={styles.cameraIcon} aria-hidden="true">
+            <span className={styles.cameraIconLens} />
+          </span>
           Take a photo
         </button>
         <input
@@ -61,7 +70,7 @@ export default function LandingScreen({
           disabled={!overlayReady}
           onClick={() => libraryInputRef.current?.click()}
         >
-          Choose a photo
+          Choose from camera roll
         </button>
         <input
           ref={libraryInputRef}

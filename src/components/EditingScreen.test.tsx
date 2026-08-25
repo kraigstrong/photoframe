@@ -31,6 +31,7 @@ const IMAGE: WorkingImage = {
 
 function makeProps(overrides: Partial<EditingScreenProps> = {}): EditingScreenProps {
   return {
+    eventName: 'Ada & Sam’s Wedding',
     image: IMAGE,
     overlaySrc: '/overlay.png',
     outputWidth: OUTPUT_WIDTH,

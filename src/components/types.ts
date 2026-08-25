@@ -18,6 +18,8 @@ export type LandingScreenProps = {
   eventName: string;
   instruction: string;
   privacyMessage: string;
+  /** Same-origin overlay asset URL, shown decoratively in a preview frame. */
+  overlaySrc: string;
   /** Passed straight through to the camera file input's `capture` attribute. */
   cameraFacing: 'user' | 'environment';
   /** Both file inputs stay disabled until the overlay has decoded. */
@@ -30,6 +32,7 @@ export type DecodingScreenProps = {
 };
 
 export type EditingScreenProps = {
+  eventName: string;
   image: WorkingImage;
   /** Same-origin overlay asset URL, rendered above the photo, decorative. */
   overlaySrc: string;

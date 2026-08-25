@@ -20,10 +20,12 @@
   --radius: 0.75rem;
   --tap-target: 44px;
 
+  --font-serif: 'Source Serif 4', Georgia, serif;
+
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * {
