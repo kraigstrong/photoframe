@@ -63,6 +63,7 @@ export default function App() {
           onChangePhoto={flow.changePhoto}
           exportReady={false}
           onSaveOrShare={flow.saveOrShare}
+          confirmation={flow.confirmation}
         />
       );
 
@@ -79,6 +80,7 @@ export default function App() {
           onChangePhoto={flow.changePhoto}
           exportReady
           onSaveOrShare={flow.saveOrShare}
+          confirmation={flow.confirmation}
         />
       );
 
@@ -89,6 +91,7 @@ export default function App() {
           onDownload={flow.download}
           onBackToEditing={flow.backToEditing}
           onTryShareAgain={flow.tryShareAgain}
+          confirmation={flow.confirmation}
         />
       );
 

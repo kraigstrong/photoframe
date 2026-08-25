@@ -22,6 +22,17 @@ import { shareService } from '../lib/share/index.ts';
 import type { AppError, AppErrorKind, AppState } from './appState.ts';
 
 const EXPORT_DEBOUNCE_MS = 400;
+/** How long a "Shared"/"Saved" confirmation stays visible before self-clearing. */
+const CONFIRMATION_DURATION_MS = 2500;
+
+/**
+ * A brief, self-dismissing confirmation surfaced after an action this hook
+ * can actually observe completing: `navigator.share()` resolving, or the
+ * fallback Download button being clicked. There is no browser signal for
+ * the manual "touch and hold to save" gesture, so that path stays silent —
+ * a real platform limitation, not an oversight.
+ */
+export type ShareConfirmation = 'shared' | 'saved' | null;
 
 const FRIENDLY_MESSAGES: Record<AppErrorKind, string> = {
   overlayLoadFailed: "We couldn't load the event frame. Check your connection and try again.",
@@ -122,6 +133,7 @@ export type UseGuestFlowResult = {
   instruction: string;
   privacyMessage: string;
   cameraFacing: 'user' | 'environment';
+  confirmation: ShareConfirmation;
   selectFile: (file: File) => void;
   updateTransform: (next: Transform) => void;
   resetPosition: () => void;
@@ -142,6 +154,20 @@ export function useGuestFlow(): UseGuestFlowResult {
 
   const [overlayReady, setOverlayReady] = useState(false);
   const overlayImageRef = useRef<CanvasImageSource | null>(null);
+
+  const [confirmation, setConfirmation] = useState<ShareConfirmation>(null);
+  const confirmationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showConfirmation = useCallback((kind: 'shared' | 'saved') => {
+    if (confirmationTimerRef.current) {
+      clearTimeout(confirmationTimerRef.current);
+    }
+    setConfirmation(kind);
+    confirmationTimerRef.current = setTimeout(() => {
+      confirmationTimerRef.current = null;
+      setConfirmation(null);
+    }, CONFIRMATION_DURATION_MS);
+  }, []);
 
   // Kept outside AppState (whose 'error' variant intentionally carries no
   // recovery payload) purely so exportFailed/shareFailed retry can restore
@@ -351,23 +377,29 @@ export function useGuestFlow(): UseGuestFlowResult {
     dispatch({ type: 'CHANGE_PHOTO' });
   }, []);
 
-  const attemptShare = useCallback((exported: ExportedImage) => {
-    if (sharePendingRef.current) {
-      // A share is already in flight; ignore the extra tap rather than
-      // firing a second concurrent navigator.share() call.
-      return;
-    }
-    sharePendingRef.current = true;
-    shareService.share(exported).then((outcome) => {
-      sharePendingRef.current = false;
-      if (outcome.result === 'shared' || outcome.result === 'cancelled') {
-        // Success: stay put. Cancellation is a normal outcome, not a
-        // failure. Either way the guest can share again or change photo.
+  const attemptShare = useCallback(
+    (exported: ExportedImage) => {
+      if (sharePendingRef.current) {
+        // A share is already in flight; ignore the extra tap rather than
+        // firing a second concurrent navigator.share() call.
         return;
       }
-      dispatch({ type: 'SHARE_UNAVAILABLE_OR_FAILED' });
-    });
-  }, []);
+      sharePendingRef.current = true;
+      shareService.share(exported).then((outcome) => {
+        sharePendingRef.current = false;
+        if (outcome.result === 'shared') {
+          showConfirmation('shared');
+          return;
+        }
+        if (outcome.result === 'cancelled') {
+          // A normal outcome, not a failure — no confirmation, no error.
+          return;
+        }
+        dispatch({ type: 'SHARE_UNAVAILABLE_OR_FAILED' });
+      });
+    },
+    [showConfirmation],
+  );
 
   const saveOrShare = useCallback(() => {
     const current = stateRef.current;
@@ -391,7 +423,8 @@ export function useGuestFlow(): UseGuestFlowResult {
       return;
     }
     shareService.saveFallback(current.exported);
-  }, []);
+    showConfirmation('saved');
+  }, [showConfirmation]);
 
   const backToEditing = useCallback(() => {
     const current = stateRef.current;
@@ -446,6 +479,9 @@ export function useGuestFlow(): UseGuestFlowResult {
       if (exportTimerRef.current) {
         clearTimeout(exportTimerRef.current);
       }
+      if (confirmationTimerRef.current) {
+        clearTimeout(confirmationTimerRef.current);
+      }
     };
   }, []);
 
@@ -457,6 +493,7 @@ export function useGuestFlow(): UseGuestFlowResult {
     instruction: eventConfig.instruction,
     privacyMessage: eventConfig.privacyMessage,
     cameraFacing: eventConfig.cameraFacing,
+    confirmation,
     selectFile,
     updateTransform,
     resetPosition,

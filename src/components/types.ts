@@ -11,6 +11,7 @@
  * component — that orchestration lives in the hook.
  */
 import type { AppError } from '../state/appState.ts';
+import type { ShareConfirmation } from '../state/useGuestFlow.ts';
 import type { ExportedImage, Transform, WorkingImage } from '../lib/image/types.ts';
 
 export type LandingScreenProps = {
@@ -46,6 +47,7 @@ export type EditingScreenProps = {
    * a "Preparing photo…" state until this flips true. */
   exportReady: boolean;
   onSaveOrShare: () => void;
+  confirmation: ShareConfirmation;
 };
 
 export type FallbackScreenProps = {
@@ -53,6 +55,7 @@ export type FallbackScreenProps = {
   onDownload: () => void;
   onBackToEditing: () => void;
   onTryShareAgain: () => void;
+  confirmation: ShareConfirmation;
 };
 
 export type ErrorScreenProps = {

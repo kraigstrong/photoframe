@@ -54,6 +54,7 @@ export default function EditingScreen({
   onChangePhoto,
   exportReady,
   onSaveOrShare,
+  confirmation,
 }: EditingScreenProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidthPx, setContainerWidthPx] = useState(FALLBACK_CONTAINER_WIDTH_PX);
@@ -260,6 +261,11 @@ export default function EditingScreen({
             Preparing photo…
           </p>
         )}
+        {confirmation ? (
+          <p className={styles.confirmation} role="status" aria-live="polite">
+            {confirmation === 'shared' ? 'Shared!' : 'Saved!'}
+          </p>
+        ) : null}
       </div>
     </main>
   );
