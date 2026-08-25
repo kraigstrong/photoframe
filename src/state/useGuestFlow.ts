@@ -22,7 +22,7 @@ import { shareService } from '../lib/share/index.ts';
 import type { AppError, AppErrorKind, AppState } from './appState.ts';
 
 const EXPORT_DEBOUNCE_MS = 400;
-/** How long a "Shared"/"Saved" confirmation stays visible before self-clearing. */
+/** How long the confirmation toast stays visible before self-clearing. */
 const CONFIRMATION_DURATION_MS = 2500;
 
 /**
@@ -31,8 +31,13 @@ const CONFIRMATION_DURATION_MS = 2500;
  * fallback Download button being clicked. There is no browser signal for
  * the manual "touch and hold to save" gesture, so that path stays silent —
  * a real platform limitation, not an oversight.
+ *
+ * Deliberately a single generic kind rather than distinguishing "shared"
+ * from "saved": once the guest hands off to navigator.share()'s OS sheet,
+ * there's no signal for which destination they picked in it (including
+ * "Save Image"), so a label that claims to know would often be wrong.
  */
-export type ShareConfirmation = 'shared' | 'saved' | null;
+export type ShareConfirmation = 'done' | null;
 
 const FRIENDLY_MESSAGES: Record<AppErrorKind, string> = {
   overlayLoadFailed: "We couldn't load the event frame. Check your connection and try again.",
@@ -59,7 +64,6 @@ type Action =
   | { type: 'EXPORT_FAILED' }
   | { type: 'CHANGE_PHOTO' }
   | { type: 'SHARE_UNAVAILABLE_OR_FAILED' }
-  | { type: 'SAVE_REQUESTED' }
   | {
       type: 'BACK_TO_EDITING';
       image: WorkingImage;
@@ -103,11 +107,6 @@ function reducer(state: AppState, action: Action): AppState {
     case 'CHANGE_PHOTO':
       return { status: 'idle' };
     case 'SHARE_UNAVAILABLE_OR_FAILED':
-    case 'SAVE_REQUESTED':
-      // Both land on the same manual-save screen: it shows the actual
-      // composited photo with "touch and hold to save" instructions, which
-      // works identically on iOS Safari and Android Chrome regardless of
-      // whether the guest deliberately tapped Save or Share just failed.
       return state.status === 'ready'
         ? { status: 'fallbackSave', exported: state.exported }
         : state;
@@ -144,8 +143,7 @@ export type UseGuestFlowResult = {
   updateTransform: (next: Transform) => void;
   resetPosition: () => void;
   changePhoto: () => void;
-  share: () => void;
-  save: () => void;
+  saveOrShare: () => void;
   retry: () => void;
   download: () => void;
   backToEditing: () => void;
@@ -166,11 +164,11 @@ export function useGuestFlow(): UseGuestFlowResult {
   const confirmationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingVisibilityListenerRef = useRef<(() => void) | null>(null);
 
-  const showConfirmation = useCallback((kind: 'shared' | 'saved') => {
+  const showConfirmation = useCallback(() => {
     if (confirmationTimerRef.current) {
       clearTimeout(confirmationTimerRef.current);
     }
-    setConfirmation(kind);
+    setConfirmation('done');
     confirmationTimerRef.current = setTimeout(() => {
       confirmationTimerRef.current = null;
       setConfirmation(null);
@@ -184,29 +182,26 @@ export function useGuestFlow(): UseGuestFlowResult {
   // guest actually returns. Showing the confirmation immediately would run
   // its whole auto-dismiss clock while the guest can't possibly see it.
   // Wait for the page to actually be visible again first.
-  const showConfirmationWhenVisible = useCallback(
-    (kind: 'shared' | 'saved') => {
-      if (pendingVisibilityListenerRef.current) {
-        document.removeEventListener('visibilitychange', pendingVisibilityListenerRef.current);
-        pendingVisibilityListenerRef.current = null;
-      }
-      if (document.visibilityState === 'visible') {
-        showConfirmation(kind);
+  const showConfirmationWhenVisible = useCallback(() => {
+    if (pendingVisibilityListenerRef.current) {
+      document.removeEventListener('visibilitychange', pendingVisibilityListenerRef.current);
+      pendingVisibilityListenerRef.current = null;
+    }
+    if (document.visibilityState === 'visible') {
+      showConfirmation();
+      return;
+    }
+    const onVisible = (): void => {
+      if (document.visibilityState !== 'visible') {
         return;
       }
-      const onVisible = (): void => {
-        if (document.visibilityState !== 'visible') {
-          return;
-        }
-        document.removeEventListener('visibilitychange', onVisible);
-        pendingVisibilityListenerRef.current = null;
-        showConfirmation(kind);
-      };
-      pendingVisibilityListenerRef.current = onVisible;
-      document.addEventListener('visibilitychange', onVisible);
-    },
-    [showConfirmation],
-  );
+      document.removeEventListener('visibilitychange', onVisible);
+      pendingVisibilityListenerRef.current = null;
+      showConfirmation();
+    };
+    pendingVisibilityListenerRef.current = onVisible;
+    document.addEventListener('visibilitychange', onVisible);
+  }, [showConfirmation]);
 
   // Kept outside AppState (whose 'error' variant intentionally carries no
   // recovery payload) purely so exportFailed/shareFailed retry can restore
@@ -427,7 +422,7 @@ export function useGuestFlow(): UseGuestFlowResult {
       shareService.share(exported).then((outcome) => {
         sharePendingRef.current = false;
         if (outcome.result === 'shared') {
-          showConfirmationWhenVisible('shared');
+          showConfirmationWhenVisible();
           return;
         }
         if (outcome.result === 'cancelled') {
@@ -440,39 +435,13 @@ export function useGuestFlow(): UseGuestFlowResult {
     [showConfirmationWhenVisible],
   );
 
-  const share = useCallback(() => {
+  const saveOrShare = useCallback(() => {
     const current = stateRef.current;
     if (current.status !== 'ready') {
       return;
     }
     attemptShare(current.exported);
   }, [attemptShare]);
-
-  // Deliberately bypasses navigator.share() entirely: the OS share sheet it
-  // would open lets the guest pick a save destination among other targets
-  // (Messages, Mail, AirDrop, ...), and once handed off there's no browser
-  // signal for which one they chose — so a "Save" action that goes through
-  // it can't honestly promise "this never leaves the device via a share
-  // target".
-  //
-  // It also deliberately does NOT fire shareService.saveFallback directly
-  // the way this used to: on iOS Safari that anchor-download mechanism
-  // usually lands the file in Downloads/Files rather than Photos, and
-  // firing it silently would leave the guest on the editor with nothing
-  // but an optimistic "Saved!" toast and no way to actually get the photo
-  // into Photos. Routing through the same manual-save screen the
-  // share-unavailable/failed path already uses instead shows the guest
-  // their actual composited photo with "touch and hold to save to Photos"
-  // instructions — the one save method that works identically on iOS
-  // Safari and Android Chrome — with the Download button there as a
-  // secondary attempt for browsers where it does work directly.
-  const save = useCallback(() => {
-    const current = stateRef.current;
-    if (current.status !== 'ready') {
-      return;
-    }
-    dispatch({ type: 'SAVE_REQUESTED' });
-  }, []);
 
   const tryShareAgain = useCallback(() => {
     const current = stateRef.current;
@@ -488,7 +457,7 @@ export function useGuestFlow(): UseGuestFlowResult {
       return;
     }
     shareService.saveFallback(current.exported);
-    showConfirmationWhenVisible('saved');
+    showConfirmationWhenVisible();
   }, [showConfirmationWhenVisible]);
 
   const backToEditing = useCallback(() => {
@@ -566,8 +535,7 @@ export function useGuestFlow(): UseGuestFlowResult {
     updateTransform,
     resetPosition,
     changePhoto,
-    share,
-    save,
+    saveOrShare,
     retry,
     download,
     backToEditing,

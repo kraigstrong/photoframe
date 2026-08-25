@@ -24,10 +24,9 @@ const KEYBOARD_NUDGE_STEP = 20;
 /** Used only before the first real container measurement lands. */
 const FALLBACK_CONTAINER_WIDTH_PX = 360;
 
-/** How long the Save/Share buttons stay disabled after a tap, to absorb
- * accidental double-taps without coordinating with the hook. Shared between
- * both buttons so a double-tap can't fire one, then the other. */
-const ACTION_COOLDOWN_MS = 1000;
+/** How long the Save/Share button stays disabled after a tap, to absorb
+ * accidental double-taps without coordinating with the hook. */
+const SHARE_COOLDOWN_MS = 1000;
 
 type PointerPoint = { x: number; y: number };
 
@@ -75,8 +74,7 @@ export default function EditingScreen({
   onResetPosition,
   onChangePhoto,
   exportReady,
-  onSave,
-  onShare,
+  onSaveOrShare,
   confirmation,
 }: EditingScreenProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -88,8 +86,8 @@ export default function EditingScreen({
    * the just-applied transform instead of the not-yet-re-rendered prop. */
   const latestTransformRef = useRef(transform);
 
-  const [isActionCoolingDown, setIsActionCoolingDown] = useState(false);
-  const actionCooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isShareCoolingDown, setIsShareCoolingDown] = useState(false);
+  const shareCooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useLayoutEffect(() => {
     const el = containerRef.current;
@@ -115,8 +113,8 @@ export default function EditingScreen({
 
   useLayoutEffect(() => {
     return () => {
-      if (actionCooldownTimerRef.current) {
-        clearTimeout(actionCooldownTimerRef.current);
+      if (shareCooldownTimerRef.current) {
+        clearTimeout(shareCooldownTimerRef.current);
       }
     };
   }, []);
@@ -292,23 +290,15 @@ export default function EditingScreen({
     commitTransform(applyZoom(transform, nextScale, image, outputWidth, outputHeight));
   }
 
-  function runCooledDownAction(action: () => void): void {
-    if (!exportReady || isActionCoolingDown) {
+  function handleSaveOrShare(): void {
+    if (!exportReady || isShareCoolingDown) {
       return;
     }
-    setIsActionCoolingDown(true);
-    action();
-    actionCooldownTimerRef.current = setTimeout(() => {
-      setIsActionCoolingDown(false);
-    }, ACTION_COOLDOWN_MS);
-  }
-
-  function handleSave(): void {
-    runCooledDownAction(onSave);
-  }
-
-  function handleShare(): void {
-    runCooledDownAction(onShare);
+    setIsShareCoolingDown(true);
+    onSaveOrShare();
+    shareCooldownTimerRef.current = setTimeout(() => {
+      setIsShareCoolingDown(false);
+    }, SHARE_COOLDOWN_MS);
   }
 
   return (
@@ -368,31 +358,21 @@ export default function EditingScreen({
       </div>
 
       <div className={styles.shareRow}>
-        <div className={styles.shareButtons}>
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            disabled={!exportReady || isActionCoolingDown}
-            onClick={handleSave}
-          >
-            Save
-          </button>
-          <button
-            type="button"
-            className={styles.primaryButton}
-            disabled={!exportReady || isActionCoolingDown}
-            onClick={handleShare}
-          >
-            Share
-          </button>
-        </div>
+        <button
+          type="button"
+          className={styles.primaryButton}
+          disabled={!exportReady || isShareCoolingDown}
+          onClick={handleSaveOrShare}
+        >
+          Save or share
+        </button>
         {exportReady ? null : (
           <p className={styles.preparingMessage} aria-live="polite">
             Preparing photo…
           </p>
         )}
       </div>
-      {confirmation ? <Toast message={confirmation === 'shared' ? 'Shared!' : 'Saved!'} /> : null}
+      {confirmation ? <Toast message="All set!" /> : null}
     </main>
   );
 }

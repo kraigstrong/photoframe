@@ -39,7 +39,7 @@ export default function FallbackScreen({
         </button>
       </div>
 
-      {confirmation ? <Toast message={confirmation === 'shared' ? 'Shared!' : 'Saved!'} /> : null}
+      {confirmation ? <Toast message="All set!" /> : null}
     </main>
   );
 }

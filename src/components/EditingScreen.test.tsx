@@ -40,8 +40,7 @@ function makeProps(overrides: Partial<EditingScreenProps> = {}): EditingScreenPr
     onResetPosition: vi.fn(),
     onChangePhoto: vi.fn(),
     exportReady: true,
-    onSave: vi.fn(),
-    onShare: vi.fn(),
+    onSaveOrShare: vi.fn(),
     confirmation: null,
     ...overrides,
   };
@@ -232,24 +231,23 @@ describe('EditingScreen', () => {
     expect(onChangePhoto).toHaveBeenCalledTimes(1);
   });
 
-  it('disables Save and Share and shows a preparing message while export is not ready', () => {
+  it('disables Save/Share and shows a preparing message while export is not ready', () => {
     renderWithMeasuredContainer(makeProps({ exportReady: false }));
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Share' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save or share' })).toBeDisabled();
     expect(screen.getByText('Preparing photo…')).toBeInTheDocument();
   });
 
-  it('calls onSave once per click and debounces rapid double-taps', () => {
+  it('calls onSaveOrShare once per click and debounces rapid double-taps', () => {
     vi.useFakeTimers();
-    const onSave = vi.fn();
-    renderWithMeasuredContainer(makeProps({ onSave, exportReady: true }));
+    const onSaveOrShare = vi.fn();
+    renderWithMeasuredContainer(makeProps({ onSaveOrShare, exportReady: true }));
 
-    const button = screen.getByRole('button', { name: 'Save' });
+    const button = screen.getByRole('button', { name: 'Save or share' });
     fireEvent.click(button);
     fireEvent.click(button);
     fireEvent.click(button);
 
-    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSaveOrShare).toHaveBeenCalledTimes(1);
     expect(button).toBeDisabled();
 
     act(() => {
@@ -260,56 +258,13 @@ describe('EditingScreen', () => {
     vi.useRealTimers();
   });
 
-  it('calls onShare once per click and debounces rapid double-taps', () => {
-    vi.useFakeTimers();
-    const onShare = vi.fn();
-    renderWithMeasuredContainer(makeProps({ onShare, exportReady: true }));
-
-    const button = screen.getByRole('button', { name: 'Share' });
-    fireEvent.click(button);
-    fireEvent.click(button);
-    fireEvent.click(button);
-
-    expect(onShare).toHaveBeenCalledTimes(1);
-    expect(button).toBeDisabled();
-
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-    expect(button).not.toBeDisabled();
-
-    vi.useRealTimers();
-  });
-
-  it('cools down both buttons together: tapping Save also disables Share until the cooldown clears', () => {
-    vi.useFakeTimers();
-    const onSave = vi.fn();
-    const onShare = vi.fn();
-    renderWithMeasuredContainer(makeProps({ onSave, onShare, exportReady: true }));
-
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Share' }));
-
-    expect(onSave).toHaveBeenCalledTimes(1);
-    expect(onShare).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Share' })).toBeDisabled();
-
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-    expect(screen.getByRole('button', { name: 'Share' })).not.toBeDisabled();
-
-    vi.useRealTimers();
-  });
-
-  it('shows a "Shared!" confirmation when confirmation is "shared"', () => {
-    renderWithMeasuredContainer(makeProps({ confirmation: 'shared' }));
-    expect(screen.getByText('Shared!')).toBeInTheDocument();
+  it('shows an "All set!" confirmation when confirmation is "done"', () => {
+    renderWithMeasuredContainer(makeProps({ confirmation: 'done' }));
+    expect(screen.getByText('All set!')).toBeInTheDocument();
   });
 
   it('shows no confirmation text when confirmation is null', () => {
     renderWithMeasuredContainer(makeProps({ confirmation: null }));
-    expect(screen.queryByText('Shared!')).not.toBeInTheDocument();
-    expect(screen.queryByText('Saved!')).not.toBeInTheDocument();
+    expect(screen.queryByText('All set!')).not.toBeInTheDocument();
   });
 });

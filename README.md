@@ -132,20 +132,14 @@ optional, and not something CI or Playwright can substitute for:
       confirm decoding it doesn't crash or reload the tab (see note below).
 - [ ] On iPhone: choose an ordinary HEIC photo from the library.
 - [ ] Preview orientation is correct for every case above.
-- [ ] Drag, pinch-to-zoom, and use the zoom slider; no empty edge ever appears. Lifting one finger
-      mid-pinch should hand off to a smooth one-finger drag, not jump.
+- [ ] Drag and zoom the photo; no empty edge ever appears.
 - [ ] Exported image has the correct overlay alignment and resolution.
-- [ ] Tap "Save": no share sheet or destination picker ever appears — instead the finished photo
-      shows on its own screen with "Touch and hold the image, then choose Save to Photos."
-      Confirm the long-press save actually works, and that the Download button beneath it also
-      works as a second way to save.
-- [ ] Tap "Share": the native share sheet opens with the image attached; save to Photos/Gallery
-      and share to another app both succeed from within it.
+- [ ] Native share sheet opens with the image attached; save to Photos/Gallery succeeds.
 - [ ] Cancel the share sheet, then retry successfully.
-- [ ] Tap "Share" twice in quick succession; confirm only one share sheet appears (this is
-      enforced in code — `useGuestFlow`'s `attemptShare` ignores a second tap while a share is
+- [ ] Tap "Save or share" twice in quick succession; confirm only one share sheet appears (this
+      is enforced in code — `useGuestFlow`'s `attemptShare` ignores a second tap while a share is
       already in flight — but is worth a real-device sanity check).
-- [ ] Exercise the fallback save path (e.g. by declining/failing the share sheet from "Share").
+- [ ] Exercise the fallback save path (e.g. by declining/failing the share sheet).
 - [ ] Retake and re-select the same photo; the app accepts it again.
 - [ ] Repeat the full flow three times in a row without a reload or crash.
 

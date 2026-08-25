@@ -65,19 +65,13 @@ describe('FallbackScreen', () => {
     expect(onBackToEditing).toHaveBeenCalledTimes(1);
   });
 
-  it('shows a "Saved!" confirmation when confirmation is "saved"', () => {
-    render(<FallbackScreen {...makeProps({ confirmation: 'saved' })} />);
-    expect(screen.getByText('Saved!')).toBeInTheDocument();
-  });
-
-  it('shows a "Shared!" confirmation when confirmation is "shared" (e.g. after "Try sharing again" succeeds)', () => {
-    render(<FallbackScreen {...makeProps({ confirmation: 'shared' })} />);
-    expect(screen.getByText('Shared!')).toBeInTheDocument();
+  it('shows an "All set!" confirmation when confirmation is "done" (e.g. after Download or a successful "Try sharing again")', () => {
+    render(<FallbackScreen {...makeProps({ confirmation: 'done' })} />);
+    expect(screen.getByText('All set!')).toBeInTheDocument();
   });
 
   it('shows no confirmation text when confirmation is null', () => {
     render(<FallbackScreen {...makeProps({ confirmation: null })} />);
-    expect(screen.queryByText('Shared!')).not.toBeInTheDocument();
-    expect(screen.queryByText('Saved!')).not.toBeInTheDocument();
+    expect(screen.queryByText('All set!')).not.toBeInTheDocument();
   });
 });

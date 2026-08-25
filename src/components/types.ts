@@ -46,10 +46,7 @@ export type EditingScreenProps = {
    * change (debounced) — the Save/Share action must stay disabled and show
    * a "Preparing photo…" state until this flips true. */
   exportReady: boolean;
-  /** Direct-download save; never opens the OS share sheet. */
-  onSave: () => void;
-  /** Opens the OS share sheet (Messages, AirDrop, "Save Image", etc.). */
-  onShare: () => void;
+  onSaveOrShare: () => void;
   confirmation: ShareConfirmation;
 };
 
