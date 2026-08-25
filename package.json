@@ -13,13 +13,15 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "generate:qr": "tsx scripts/generate-qr.ts"
+    "generate:qr": "tsx scripts/generate-qr.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.6",
@@ -29,6 +31,7 @@
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
     "@vitest/coverage-v8": "^4.1.11",
+    "canvas": "^3.2.3",
     "jsdom": "^30.0.1",
     "oxlint": "^1.79.0",
     "prettier": "^3.9.6",
@@ -40,6 +43,7 @@
   },
   "allowScripts": {
     "esbuild@0.28.2": true,
-    "fsevents@2.3.3": true
+    "fsevents@2.3.3": true,
+    "canvas@3.2.3": true
   }
 }
