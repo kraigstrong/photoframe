@@ -374,7 +374,7 @@ describe('useGuestFlow: sharing and fallback', () => {
     return { hook, image, exported };
   }
 
-  it('ignores a second saveOrShare tap while the first share is still pending, so navigator.share is never called concurrently', async () => {
+  it('ignores a second share tap while the first share is still pending, so navigator.share is never called concurrently', async () => {
     // Regression test (adversarial review, milestone 4): the underlying
     // guard here is what actually prevents a double navigator.share() call
     // — EditingScreen's fixed re-enable timer is only a UI nicety on top
@@ -391,10 +391,10 @@ describe('useGuestFlow: sharing and fallback', () => {
 
     const { hook } = await getToReady();
     act(() => {
-      hook.result.current.saveOrShare();
+      hook.result.current.share();
     });
     act(() => {
-      hook.result.current.saveOrShare();
+      hook.result.current.share();
     });
 
     expect(shareMock).toHaveBeenCalledTimes(1);
@@ -407,7 +407,7 @@ describe('useGuestFlow: sharing and fallback', () => {
 
     // Once the first share completes, a later tap is allowed through again.
     act(() => {
-      hook.result.current.saveOrShare();
+      hook.result.current.share();
     });
     expect(shareMock).toHaveBeenCalledTimes(2);
   });
@@ -419,7 +419,7 @@ describe('useGuestFlow: sharing and fallback', () => {
 
     const { hook, exported } = await getToReady();
     await act(async () => {
-      hook.result.current.saveOrShare();
+      hook.result.current.share();
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -435,7 +435,7 @@ describe('useGuestFlow: sharing and fallback', () => {
 
     const { hook } = await getToReady();
     await act(async () => {
-      hook.result.current.saveOrShare();
+      hook.result.current.share();
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -450,7 +450,7 @@ describe('useGuestFlow: sharing and fallback', () => {
 
     const { hook, exported } = await getToReady();
     await act(async () => {
-      hook.result.current.saveOrShare();
+      hook.result.current.share();
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -465,7 +465,7 @@ describe('useGuestFlow: sharing and fallback', () => {
 
     const { hook, image, exported } = await getToReady();
     await act(async () => {
-      hook.result.current.saveOrShare();
+      hook.result.current.share();
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -482,7 +482,7 @@ describe('useGuestFlow: sharing and fallback', () => {
     (navigator as { share?: unknown }).share = originalShare;
   });
 
-  it('saveOrShare works immediately after backToEditing, without the guest touching the transform', async () => {
+  it('share works immediately after backToEditing, without the guest touching the transform', async () => {
     // Regression test: backToEditing used to restore 'editing' without ever
     // scheduling a new export, leaving Save/Share disabled forever unless
     // the guest happened to drag or use the zoom slider afterward.
@@ -495,7 +495,7 @@ describe('useGuestFlow: sharing and fallback', () => {
 
     const { hook } = await getToReady();
     act(() => {
-      hook.result.current.saveOrShare();
+      hook.result.current.share();
     });
     await waitFor(() => expect(hook.result.current.state.status).toBe('fallbackSave'));
     expect(shareMock).toHaveBeenCalledTimes(1);
@@ -506,7 +506,7 @@ describe('useGuestFlow: sharing and fallback', () => {
     expect(hook.result.current.state.status).toBe('ready');
 
     act(() => {
-      hook.result.current.saveOrShare();
+      hook.result.current.share();
     });
     expect(shareMock).toHaveBeenCalledTimes(2);
   });
@@ -518,7 +518,7 @@ describe('useGuestFlow: sharing and fallback', () => {
 
     const { hook, exported } = await getToReady();
     await act(async () => {
-      hook.result.current.saveOrShare();
+      hook.result.current.share();
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -535,6 +535,57 @@ describe('useGuestFlow: sharing and fallback', () => {
     void exported;
   });
 
+  it('save() goes straight to the manual-save screen (never navigator.share, no premature confirmation)', async () => {
+    // Regression test (Codex review, save-share-split PR): save() used to
+    // fire shareService.saveFallback directly and immediately show "Saved!"
+    // while staying on the editor — on iOS Safari that download mechanism
+    // usually lands the file in Downloads/Files, not Photos, so the guest
+    // had no way to actually complete a save-to-Photos from there. Routing
+    // through the same screen the share-unavailable/failed path already
+    // uses guarantees the guest sees their composited photo with the
+    // "touch and hold to save to Photos" instruction.
+    const shareMock = vi.fn();
+    navigator.share = shareMock;
+    navigator.canShare = () => true;
+
+    const { hook, exported } = await getToReady();
+    act(() => {
+      hook.result.current.save();
+    });
+
+    expect(hook.result.current.state).toMatchObject({ status: 'fallbackSave', exported });
+    expect(shareMock).not.toHaveBeenCalled();
+    // No confirmation yet — that only fires once the guest actually taps
+    // Download (or completes a share) from the manual-save screen.
+    expect(hook.result.current.confirmation).toBeNull();
+  });
+
+  it("download() from the manual-save screen sets 'saved' the same way whether reached via save() or a failed share", async () => {
+    navigator.share = vi.fn();
+    navigator.canShare = () => true;
+
+    const { hook } = await getToReady();
+    vi.useFakeTimers();
+    act(() => {
+      hook.result.current.save();
+    });
+    expect(hook.result.current.state.status).toBe('fallbackSave');
+
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    act(() => {
+      hook.result.current.download();
+    });
+    expect(hook.result.current.confirmation).toBe('saved');
+
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+    expect(hook.result.current.confirmation).toBeNull();
+
+    clickSpy.mockRestore();
+    vi.useRealTimers();
+  });
+
   it("sets confirmation to 'shared' after a successful share, then clears it on its own", async () => {
     navigator.share = vi.fn().mockResolvedValue(undefined);
     navigator.canShare = () => true;
@@ -544,7 +595,7 @@ describe('useGuestFlow: sharing and fallback', () => {
     expect(hook.result.current.confirmation).toBeNull();
 
     await act(async () => {
-      hook.result.current.saveOrShare();
+      hook.result.current.share();
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -566,7 +617,7 @@ describe('useGuestFlow: sharing and fallback', () => {
     const { hook } = await getToReady();
     vi.useFakeTimers();
     await act(async () => {
-      hook.result.current.saveOrShare();
+      hook.result.current.share();
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -595,7 +646,7 @@ describe('useGuestFlow: sharing and fallback', () => {
 
     const { hook } = await getToReady();
     await act(async () => {
-      hook.result.current.saveOrShare();
+      hook.result.current.share();
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -623,7 +674,7 @@ describe('useGuestFlow: sharing and fallback', () => {
       setDocumentVisibility('hidden');
 
       await act(async () => {
-        hook.result.current.saveOrShare();
+        hook.result.current.share();
         await Promise.resolve();
         await Promise.resolve();
       });
@@ -645,7 +696,7 @@ describe('useGuestFlow: sharing and fallback', () => {
     setDocumentVisibility('visible');
 
     await act(async () => {
-      hook.result.current.saveOrShare();
+      hook.result.current.share();
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -659,7 +710,7 @@ describe('useGuestFlow: sharing and fallback', () => {
 
     const { hook } = await getToReady();
     await act(async () => {
-      hook.result.current.saveOrShare();
+      hook.result.current.share();
       await Promise.resolve();
       await Promise.resolve();
     });

@@ -62,7 +62,8 @@ export default function App() {
           onResetPosition={flow.resetPosition}
           onChangePhoto={flow.changePhoto}
           exportReady={false}
-          onSaveOrShare={flow.saveOrShare}
+          onSave={flow.save}
+          onShare={flow.share}
           confirmation={flow.confirmation}
         />
       );
@@ -79,7 +80,8 @@ export default function App() {
           onResetPosition={flow.resetPosition}
           onChangePhoto={flow.changePhoto}
           exportReady
-          onSaveOrShare={flow.saveOrShare}
+          onSave={flow.save}
+          onShare={flow.share}
           confirmation={flow.confirmation}
         />
       );

@@ -87,8 +87,14 @@
   margin-top: var(--space-1);
 }
 
-.primaryButton {
+.shareButtons {
+  display: flex;
+  gap: var(--space-3);
   width: 100%;
+}
+
+.primaryButton {
+  flex: 1;
   padding: var(--space-3) var(--space-4);
   font-size: 1rem;
   font-weight: 600;
@@ -97,7 +103,8 @@
   border-color: var(--accent);
 }
 
-.primaryButton:disabled {
+.primaryButton:disabled,
+.secondaryButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
