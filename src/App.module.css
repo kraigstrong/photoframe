@@ -1,0 +1,29 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--space-5);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
+  color: var(--accent);
+}
+
+.instruction {
+  margin: 0;
+  max-width: 32ch;
+  font-size: 1.0625rem;
+}
+
+.privacy {
+  margin: 0;
+  max-width: 36ch;
+  font-size: 0.875rem;
+  color: var(--muted-text);
+}
