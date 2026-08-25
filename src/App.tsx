@@ -1,13 +1,18 @@
 import { useEffect } from 'react';
+import DecodingScreen from './components/DecodingScreen.tsx';
+import EditingScreen from './components/EditingScreen.tsx';
+import ErrorScreen from './components/ErrorScreen.tsx';
+import FallbackScreen from './components/FallbackScreen.tsx';
+import LandingScreen from './components/LandingScreen.tsx';
 import { eventConfig } from './config/index.ts';
-import styles from './App.module.css';
+import { useGuestFlow } from './state/useGuestFlow.ts';
 
 /**
- * Application shell for milestone 0.
- *
- * The guest flow states are implemented in later milestones. This shell owns
- * the document title, the theme tokens derived from the event configuration,
- * and the landing layout that the guest UX work builds on.
+ * Application shell: owns the document title, the theme tokens derived from
+ * the event configuration, and renders the guest-facing screen for the
+ * current `AppState` status. All guest-flow orchestration lives in
+ * `useGuestFlow`; this component only maps state to the matching
+ * presentational component from `src/components/**`.
  */
 export default function App() {
   useEffect(() => {
@@ -25,11 +30,74 @@ export default function App() {
     root.style.setProperty('--accent-text', theme.accentText);
   }, []);
 
-  return (
-    <main className={styles.shell}>
-      <h1 className={styles.title}>{eventConfig.eventName}</h1>
-      <p className={styles.instruction}>{eventConfig.instruction}</p>
-      <p className={styles.privacy}>{eventConfig.privacyMessage}</p>
-    </main>
-  );
+  const flow = useGuestFlow();
+  const { state } = flow;
+
+  switch (state.status) {
+    case 'idle':
+      return (
+        <LandingScreen
+          eventName={flow.eventName}
+          instruction={flow.instruction}
+          privacyMessage={flow.privacyMessage}
+          cameraFacing={flow.cameraFacing}
+          overlayReady={flow.overlayReady}
+          onSelectFile={flow.selectFile}
+        />
+      );
+
+    case 'decoding':
+      return <DecodingScreen />;
+
+    case 'editing':
+    case 'preparingExport':
+      return (
+        <EditingScreen
+          image={state.image}
+          overlaySrc={flow.overlaySrc}
+          outputWidth={eventConfig.outputWidth}
+          outputHeight={eventConfig.outputHeight}
+          transform={state.transform}
+          onTransformChange={flow.updateTransform}
+          onResetPosition={flow.resetPosition}
+          onChangePhoto={flow.changePhoto}
+          exportReady={false}
+          onSaveOrShare={flow.saveOrShare}
+        />
+      );
+
+    case 'ready':
+      return (
+        <EditingScreen
+          image={state.image}
+          overlaySrc={flow.overlaySrc}
+          outputWidth={eventConfig.outputWidth}
+          outputHeight={eventConfig.outputHeight}
+          transform={state.transform}
+          onTransformChange={flow.updateTransform}
+          onResetPosition={flow.resetPosition}
+          onChangePhoto={flow.changePhoto}
+          exportReady
+          onSaveOrShare={flow.saveOrShare}
+        />
+      );
+
+    case 'fallbackSave':
+      return (
+        <FallbackScreen
+          exported={state.exported}
+          onDownload={flow.download}
+          onBackToEditing={flow.backToEditing}
+          onTryShareAgain={flow.tryShareAgain}
+        />
+      );
+
+    case 'error':
+      return <ErrorScreen error={state.error} onRetry={flow.retry} />;
+
+    default: {
+      const exhaustiveCheck: never = state;
+      throw new Error(`Unhandled AppState status: ${JSON.stringify(exhaustiveCheck)}`);
+    }
+  }
 }

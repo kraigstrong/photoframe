@@ -18,7 +18,14 @@ export const imageEngine: ImageEngine = {
 
 export default imageEngine;
 
-export { applyZoom, coverScale, MAX_RELATIVE_ZOOM, MIN_RELATIVE_ZOOM } from './geometry.ts';
+export {
+  applyZoom,
+  clamp,
+  coverFit,
+  coverScale,
+  MAX_RELATIVE_ZOOM,
+  MIN_RELATIVE_ZOOM,
+} from './geometry.ts';
 export type { ImageSize } from './geometry.ts';
 export { computeWorkingSize } from './sizing.ts';
 export type { Size } from './sizing.ts';
