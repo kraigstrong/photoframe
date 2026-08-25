@@ -17,7 +17,7 @@ const OUT_DIR = 'qr';
 const ERROR_CORRECTION_LEVEL = 'H' as const;
 const PNG_WIDTH = 2048;
 
-function parseArgs(argv: string[]): { url: string; allowInsecure: boolean } {
+export function parseArgs(argv: string[]): { url: string; allowInsecure: boolean } {
   let url: string | undefined;
   let allowInsecure = false;
 
@@ -56,7 +56,7 @@ function parseArgs(argv: string[]): { url: string; allowInsecure: boolean } {
   return { url: parsed.toString(), allowInsecure };
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const { url, allowInsecure } = parseArgs(process.argv.slice(2));
 
   await mkdir(OUT_DIR, { recursive: true });
@@ -86,7 +86,11 @@ async function main(): Promise<void> {
   console.log('Test the printed QR at its intended size and contrast before the event.');
 }
 
-main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-});
+// Only run as a CLI, not when imported (e.g. by tests exercising parseArgs
+// or main() directly).
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((error: unknown) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  });
+}

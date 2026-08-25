@@ -373,8 +373,10 @@ describe('useGuestFlow: sharing and fallback', () => {
     delete navigator.share;
 
     const { hook, exported } = await getToReady();
-    act(() => {
+    await act(async () => {
       hook.result.current.saveOrShare();
+      await Promise.resolve();
+      await Promise.resolve();
     });
 
     expect(hook.result.current.state).toMatchObject({ status: 'fallbackSave', exported });
@@ -417,8 +419,10 @@ describe('useGuestFlow: sharing and fallback', () => {
     delete navigator.share;
 
     const { hook, image, exported } = await getToReady();
-    act(() => {
+    await act(async () => {
       hook.result.current.saveOrShare();
+      await Promise.resolve();
+      await Promise.resolve();
     });
     expect(hook.result.current.state.status).toBe('fallbackSave');
 
@@ -468,8 +472,10 @@ describe('useGuestFlow: sharing and fallback', () => {
     delete navigator.share;
 
     const { hook, exported } = await getToReady();
-    act(() => {
+    await act(async () => {
       hook.result.current.saveOrShare();
+      await Promise.resolve();
+      await Promise.resolve();
     });
     expect(hook.result.current.state.status).toBe('fallbackSave');
 

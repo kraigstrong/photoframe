@@ -18,6 +18,7 @@ import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState }
 import { eventConfig } from '../config/index.ts';
 import { imageEngine } from '../lib/image/index.ts';
 import type { ExportedImage, Transform, WorkingImage } from '../lib/image/types.ts';
+import { shareService } from '../lib/share/index.ts';
 import type { AppError, AppErrorKind, AppState } from './appState.ts';
 
 const EXPORT_DEBOUNCE_MS = 400;
@@ -340,28 +341,14 @@ export function useGuestFlow(): UseGuestFlowResult {
   }, []);
 
   const attemptShare = useCallback((exported: ExportedImage) => {
-    const nav = navigator as Navigator & {
-      canShare?: (data: { files: File[] }) => boolean;
-      share?: (data: { files: File[] }) => Promise<void>;
-    };
-    const file = new File([exported.blob], exported.filename, { type: exported.blob.type });
-
-    if (typeof nav.share === 'function' && (!nav.canShare || nav.canShare({ files: [file] }))) {
-      nav
-        .share({ files: [file] })
-        .then(() => {
-          // Success: stay put. The guest can share again or change photo.
-        })
-        .catch((err: unknown) => {
-          if (err instanceof DOMException && err.name === 'AbortError') {
-            // Guest cancelled the share sheet — a normal outcome, not a failure.
-            return;
-          }
-          dispatch({ type: 'SHARE_UNAVAILABLE_OR_FAILED' });
-        });
-    } else {
+    shareService.share(exported).then((outcome) => {
+      if (outcome.result === 'shared' || outcome.result === 'cancelled') {
+        // Success: stay put. Cancellation is a normal outcome, not a
+        // failure. Either way the guest can share again or change photo.
+        return;
+      }
       dispatch({ type: 'SHARE_UNAVAILABLE_OR_FAILED' });
-    }
+    });
   }, []);
 
   const saveOrShare = useCallback(() => {
@@ -385,13 +372,7 @@ export function useGuestFlow(): UseGuestFlowResult {
     if (current.status !== 'fallbackSave') {
       return;
     }
-    const link = document.createElement('a');
-    link.href = current.exported.objectUrl;
-    link.download = current.exported.filename;
-    link.rel = 'noopener';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    shareService.saveFallback(current.exported);
   }, []);
 
   const backToEditing = useCallback(() => {
