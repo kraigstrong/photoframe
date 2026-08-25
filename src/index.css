@@ -40,13 +40,14 @@ body {
 body {
   background: var(--bg);
   color: var(--text);
-  /* Respect notches and home indicators on iOS. */
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
-    env(safe-area-inset-left);
 }
 
 #root {
   min-height: 100dvh;
+  /* Respect notches and home indicators on iOS, inside the viewport height
+     (not added on top of it) so the page never scrolls past 100dvh. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
 }
 
 button {
