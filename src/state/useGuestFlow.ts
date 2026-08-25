@@ -138,7 +138,8 @@ export type UseGuestFlowResult = {
   updateTransform: (next: Transform) => void;
   resetPosition: () => void;
   changePhoto: () => void;
-  saveOrShare: () => void;
+  share: () => void;
+  save: () => void;
   retry: () => void;
   download: () => void;
   backToEditing: () => void;
@@ -433,13 +434,31 @@ export function useGuestFlow(): UseGuestFlowResult {
     [showConfirmationWhenVisible],
   );
 
-  const saveOrShare = useCallback(() => {
+  const share = useCallback(() => {
     const current = stateRef.current;
     if (current.status !== 'ready') {
       return;
     }
     attemptShare(current.exported);
   }, [attemptShare]);
+
+  // Deliberately bypasses navigator.share() entirely: the OS share sheet it
+  // would open lets the guest pick a save destination among other targets
+  // (Messages, Mail, AirDrop, ...), and once handed off there's no browser
+  // signal for which one they chose — so a "Save" action that goes through
+  // it can't honestly promise "this never leaves the device via a share
+  // target". Going straight to the same download mechanism the fallback
+  // screen uses keeps that promise, at the cost of the same platform
+  // unreliability documented on saveFallback/FallbackScreen (e.g. iOS
+  // Safari may open the image in a new tab instead of downloading it).
+  const save = useCallback(() => {
+    const current = stateRef.current;
+    if (current.status !== 'ready') {
+      return;
+    }
+    shareService.saveFallback(current.exported);
+    showConfirmationWhenVisible('saved');
+  }, [showConfirmationWhenVisible]);
 
   const tryShareAgain = useCallback(() => {
     const current = stateRef.current;
@@ -533,7 +552,8 @@ export function useGuestFlow(): UseGuestFlowResult {
     updateTransform,
     resetPosition,
     changePhoto,
-    saveOrShare,
+    share,
+    save,
     retry,
     download,
     backToEditing,

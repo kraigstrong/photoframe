@@ -40,7 +40,7 @@ test('guest can select a photo, see it composited under the overlay, and reach r
   await expect(overlay).toHaveAttribute('aria-hidden', 'true');
   await expect(overlay).toHaveJSProperty('style.transform', '');
 
-  const shareButton = page.getByRole('button', { name: 'Save or share' });
+  const shareButton = page.getByRole('button', { name: 'Share' });
   await expect(shareButton).toBeEnabled({ timeout: 5000 });
 });
 
@@ -118,7 +118,7 @@ test('an unsupported share target falls back to the manual-save screen, and back
     .nth(1)
     .setInputFiles(path.join(FIXTURES_DIR, 'portrait.jpg'));
 
-  const shareButton = page.getByRole('button', { name: 'Save or share' });
+  const shareButton = page.getByRole('button', { name: 'Share' });
   await expect(shareButton).toBeEnabled({ timeout: 5000 });
   await shareButton.click();
 
@@ -133,7 +133,51 @@ test('an unsupported share target falls back to the manual-save screen, and back
   ).toBeVisible();
   // Regression: Save/Share must be immediately usable again, not stuck on
   // "Preparing photo…" until the guest happens to touch the transform.
-  await expect(page.getByRole('button', { name: 'Save or share' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Share' })).toBeEnabled();
+});
+
+test('Save triggers a real download and never opens the share sheet, even when sharing is supported', async ({
+  page,
+}) => {
+  const shareCalls: unknown[] = [];
+  await page.exposeBinding('recordShareCall', () => {
+    shareCalls.push(true);
+  });
+  await page.addInitScript(() => {
+    // A guest with full Web Share support should still get a direct
+    // download from Save — it must never fall through to the share sheet.
+    Object.defineProperty(window.navigator, 'share', {
+      configurable: true,
+      value: (..._args: unknown[]) => {
+        (window as unknown as { recordShareCall: () => void }).recordShareCall();
+        return Promise.resolve();
+      },
+    });
+    Object.defineProperty(window.navigator, 'canShare', {
+      configurable: true,
+      value: () => true,
+    });
+  });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Choose a photo' })).toBeEnabled({
+    timeout: 5000,
+  });
+  await page
+    .locator('input[type="file"]')
+    .nth(1)
+    .setInputFiles(path.join(FIXTURES_DIR, 'portrait.jpg'));
+
+  const saveButton = page.getByRole('button', { name: 'Save' });
+  await expect(saveButton).toBeEnabled({ timeout: 5000 });
+
+  const [download] = await Promise.all([page.waitForEvent('download'), saveButton.click()]);
+  expect(download.suggestedFilename()).toMatch(/\.jpg$/);
+  await expect(page.getByText('Saved!')).toBeVisible();
+
+  // Still on the editing screen (Share is still visible/enabled), and the
+  // share sheet was never invoked.
+  await expect(page.getByRole('button', { name: 'Share' })).toBeEnabled();
+  expect(shareCalls).toHaveLength(0);
 });
 
 test('clicking Download on the fallback screen shows a self-dismissing "Saved!" confirmation', async ({
@@ -151,7 +195,7 @@ test('clicking Download on the fallback screen shows a self-dismissing "Saved!" 
     .nth(1)
     .setInputFiles(path.join(FIXTURES_DIR, 'portrait.jpg'));
 
-  const shareButton = page.getByRole('button', { name: 'Save or share' });
+  const shareButton = page.getByRole('button', { name: 'Share' });
   await expect(shareButton).toBeEnabled({ timeout: 5000 });
   await shareButton.click();
   await expect(page.getByRole('button', { name: 'Download' })).toBeVisible();

@@ -132,14 +132,20 @@ optional, and not something CI or Playwright can substitute for:
       confirm decoding it doesn't crash or reload the tab (see note below).
 - [ ] On iPhone: choose an ordinary HEIC photo from the library.
 - [ ] Preview orientation is correct for every case above.
-- [ ] Drag and zoom the photo; no empty edge ever appears.
+- [ ] Drag, pinch-to-zoom, and use the zoom slider; no empty edge ever appears. Lifting one finger
+      mid-pinch should hand off to a smooth one-finger drag, not jump.
 - [ ] Exported image has the correct overlay alignment and resolution.
-- [ ] Native share sheet opens with the image attached; save to Photos/Gallery succeeds.
+- [ ] Tap "Save": the photo saves without any share sheet or destination picker ever appearing.
+      This is a plain browser download (`shareService.saveFallback`); iOS Safari's handling of it
+      is version-dependent and may open the image in a new tab instead of downloading it directly
+      — if so, confirm the guest can still long-press → "Save to Photos" from there.
+- [ ] Tap "Share": the native share sheet opens with the image attached; save to Photos/Gallery
+      and share to another app both succeed from within it.
 - [ ] Cancel the share sheet, then retry successfully.
-- [ ] Tap "Save or share" twice in quick succession; confirm only one share sheet appears (this
-      is enforced in code — `useGuestFlow`'s `attemptShare` ignores a second tap while a share is
+- [ ] Tap "Share" twice in quick succession; confirm only one share sheet appears (this is
+      enforced in code — `useGuestFlow`'s `attemptShare` ignores a second tap while a share is
       already in flight — but is worth a real-device sanity check).
-- [ ] Exercise the fallback save path (e.g. by declining/failing the share sheet).
+- [ ] Exercise the fallback save path (e.g. by declining/failing the share sheet from "Share").
 - [ ] Retake and re-select the same photo; the app accepts it again.
 - [ ] Repeat the full flow three times in a row without a reload or crash.
 
