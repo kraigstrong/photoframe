@@ -1,0 +1,59 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--space-5);
+  text-align: center;
+}
+
+.preview {
+  width: min(92vw, 420px);
+  max-height: 55dvh;
+  object-fit: contain;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.instruction {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 1.0625rem;
+}
+
+.hint {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 0.875rem;
+  color: var(--muted-text);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(92vw, 360px);
+  margin-top: var(--space-2);
+}
+
+.primaryButton,
+.secondaryButton {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.primaryButton {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.secondaryButton {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--muted-text);
+}

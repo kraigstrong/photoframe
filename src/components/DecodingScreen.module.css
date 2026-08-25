@@ -1,0 +1,31 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--space-5);
+  text-align: center;
+}
+
+.spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 3px solid var(--surface);
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}
+
+.message {
+  margin: 0;
+  color: var(--muted-text);
+  font-size: 1rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

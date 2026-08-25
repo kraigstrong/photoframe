@@ -1,0 +1,26 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--space-5);
+  text-align: center;
+}
+
+.message {
+  margin: 0;
+  max-width: 36ch;
+  font-size: 1.0625rem;
+}
+
+.primaryButton {
+  width: min(92vw, 360px);
+  padding: var(--space-3) var(--space-4);
+  font-size: 1rem;
+  font-weight: 600;
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
