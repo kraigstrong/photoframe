@@ -123,6 +123,49 @@ describe('EditingScreen', () => {
     fireEvent.pointerUp(region, { pointerId: 1, clientX: 110, clientY: 106 });
   });
 
+  it('reports the applyZoom result when two pointers pinch apart', () => {
+    const onTransformChange = vi.fn();
+    const transform: Transform = { x: -200, y: -300, scale: 1.5 };
+    renderWithMeasuredContainer(makeProps({ onTransformChange, transform }));
+    const region = screen.getByRole('group', {
+      name: 'Drag to reposition the photo. Use arrow keys to move it.',
+    });
+
+    fireEvent.pointerDown(region, { pointerId: 1, clientX: 100, clientY: 200 });
+    fireEvent.pointerDown(region, { pointerId: 2, clientX: 100, clientY: 300 });
+    // Starting distance is 100. Spreading to 200 apart doubles the distance,
+    // so the pinch should report double the starting scale.
+    fireEvent.pointerMove(region, { pointerId: 2, clientX: 100, clientY: 400 });
+
+    const expected = applyZoom(transform, 3, IMAGE, OUTPUT_WIDTH, OUTPUT_HEIGHT);
+    expect(onTransformChange).toHaveBeenCalledTimes(1);
+    expect(onTransformChange).toHaveBeenCalledWith(expected);
+
+    fireEvent.pointerUp(region, { pointerId: 1, clientX: 100, clientY: 200 });
+    fireEvent.pointerUp(region, { pointerId: 2, clientX: 100, clientY: 400 });
+  });
+
+  it('hands off to a pan with the remaining finger when a pinch loses one pointer', () => {
+    const onTransformChange = vi.fn();
+    const transform: Transform = { x: -200, y: -300, scale: 1.5 };
+    renderWithMeasuredContainer(makeProps({ onTransformChange, transform }));
+    const region = screen.getByRole('group', {
+      name: 'Drag to reposition the photo. Use arrow keys to move it.',
+    });
+
+    fireEvent.pointerDown(region, { pointerId: 1, clientX: 100, clientY: 200 });
+    fireEvent.pointerDown(region, { pointerId: 2, clientX: 100, clientY: 300 });
+    fireEvent.pointerUp(region, { pointerId: 1, clientX: 100, clientY: 200 });
+
+    // Pointer 2 is still down; dragging it now should pan, not zoom.
+    fireEvent.pointerMove(region, { pointerId: 2, clientX: 105, clientY: 303 });
+
+    // deltaCss (5, 3) / cssScaleFactor 0.1 = deltaFrame (50, 30)
+    expect(onTransformChange).toHaveBeenLastCalledWith({ x: -150, y: -270, scale: 1.5 });
+
+    fireEvent.pointerUp(region, { pointerId: 2, clientX: 105, clientY: 303 });
+  });
+
   it('clamps a drag that would reveal an empty edge', () => {
     const onTransformChange = vi.fn();
     renderWithMeasuredContainer(makeProps({ onTransformChange }));
