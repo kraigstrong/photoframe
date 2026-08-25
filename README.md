@@ -127,13 +127,18 @@ optional, and not something CI or Playwright can substitute for:
 
 - [ ] Scan the final printed (or on-screen) QR and load the production URL.
 - [ ] Take a new photo, both portrait and landscape.
-- [ ] Choose an existing photo, both portrait and landscape, including a high-resolution one.
+- [ ] Choose an existing photo, both portrait and landscape, including a high-resolution
+      (40+ MP) one — specifically on the oldest/lowest-RAM device in the supported range, to
+      confirm decoding it doesn't crash or reload the tab (see note below).
 - [ ] On iPhone: choose an ordinary HEIC photo from the library.
 - [ ] Preview orientation is correct for every case above.
 - [ ] Drag and zoom the photo; no empty edge ever appears.
 - [ ] Exported image has the correct overlay alignment and resolution.
 - [ ] Native share sheet opens with the image attached; save to Photos/Gallery succeeds.
 - [ ] Cancel the share sheet, then retry successfully.
+- [ ] Tap "Save or share" twice in quick succession; confirm only one share sheet appears (this
+      is enforced in code — `useGuestFlow`'s `attemptShare` ignores a second tap while a share is
+      already in flight — but is worth a real-device sanity check).
 - [ ] Exercise the fallback save path (e.g. by declining/failing the share sheet).
 - [ ] Retake and re-select the same photo; the app accepts it again.
 - [ ] Repeat the full flow three times in a row without a reload or crash.
@@ -141,3 +146,15 @@ optional, and not something CI or Playwright can substitute for:
 Strongly recommended in addition: Samsung Internet, an older supported iPhone, low-power mode, and
 loading over poor event Wi-Fi/cellular (then switching to airplane mode to confirm editing/export
 still work once the page and overlay have loaded).
+
+**Known tradeoff — large-photo decode memory:** `src/lib/image/decode.ts` decodes a selected photo
+at its full native resolution via `createImageBitmap` before drawing it down into the bounded,
+capped canvas that's actually kept (the oversized bitmap is closed immediately after). For a
+48 MP photo that's a transient ~195 MB decode, released within roughly a frame. Browsers'
+`createImageBitmap({ resizeWidth })` cannot safely avoid this: passing only `resizeWidth` upscales
+images narrower than the cap and fails to cap the true long edge on portrait sources (verified
+empirically — a 600×800 portrait with `resizeWidth: 3000` produces 3000×4000, worse than doing
+nothing). A correct fix needs the source's dimensions before decoding, which needs a lightweight
+image-header parser this app doesn't currently have. The first high-resolution device-checklist
+item above exists specifically to confirm this transient spike doesn't crash a real, in-baseline
+device before assuming this is fine.

@@ -367,6 +367,44 @@ describe('useGuestFlow: sharing and fallback', () => {
     return { hook, image, exported };
   }
 
+  it('ignores a second saveOrShare tap while the first share is still pending, so navigator.share is never called concurrently', async () => {
+    // Regression test (adversarial review, milestone 4): the underlying
+    // guard here is what actually prevents a double navigator.share() call
+    // — EditingScreen's fixed re-enable timer is only a UI nicety on top
+    // of it, not the thing that makes this safe.
+    let resolveShare!: () => void;
+    const shareMock = vi.fn().mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveShare = resolve;
+        }),
+    );
+    navigator.share = shareMock;
+    navigator.canShare = () => true;
+
+    const { hook } = await getToReady();
+    act(() => {
+      hook.result.current.saveOrShare();
+    });
+    act(() => {
+      hook.result.current.saveOrShare();
+    });
+
+    expect(shareMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveShare();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Once the first share completes, a later tap is allowed through again.
+    act(() => {
+      hook.result.current.saveOrShare();
+    });
+    expect(shareMock).toHaveBeenCalledTimes(2);
+  });
+
   it('falls back when the browser has no navigator.share', async () => {
     const originalShare = (navigator as { share?: unknown }).share;
     // @ts-expect-error simulating an unsupported browser
