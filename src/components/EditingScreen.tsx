@@ -28,10 +28,7 @@ const FALLBACK_CONTAINER_WIDTH_PX = 360;
  * accidental double-taps without coordinating with the hook. */
 const SHARE_COOLDOWN_MS = 1000;
 
-type PointerPoint = { x: number; y: number };
-
-type PanState = {
-  mode: 'pan';
+type DragState = {
   pointerId: number;
   lastClientX: number;
   lastClientY: number;
@@ -40,23 +37,6 @@ type PanState = {
    * parent's (possibly debounced) state update. */
   workingTransform: Transform;
 };
-
-type PinchState = {
-  mode: 'pinch';
-  pointerIds: readonly [number, number];
-  /** Client-pixel distance between the two pointers when the pinch began. */
-  startDistance: number;
-  /** The transform in effect when the pinch began; zoom is always computed
-   * fresh from this fixed base (same "anchor to frame center" contract as
-   * applyZoom/the slider), never accumulated incrementally. */
-  baseTransform: Transform;
-};
-
-type GestureState = PanState | PinchState;
-
-function distanceBetween(a: PointerPoint, b: PointerPoint): number {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
 
 /**
  * The photo + overlay editing surface: drag/keyboard pan, slider zoom, and
@@ -79,12 +59,7 @@ export default function EditingScreen({
 }: EditingScreenProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidthPx, setContainerWidthPx] = useState(FALLBACK_CONTAINER_WIDTH_PX);
-  const gestureRef = useRef<GestureState | null>(null);
-  const activePointersRef = useRef<Map<number, PointerPoint>>(new Map());
-  /** Mirrors the `transform` prop, but updated eagerly on every commit so a
-   * pinch-to-pan handoff (one finger lifts mid-pinch) can start the pan from
-   * the just-applied transform instead of the not-yet-re-rendered prop. */
-  const latestTransformRef = useRef(transform);
+  const dragStateRef = useRef<DragState | null>(null);
 
   const [isShareCoolingDown, setIsShareCoolingDown] = useState(false);
   const shareCooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -119,10 +94,6 @@ export default function EditingScreen({
     };
   }, []);
 
-  useLayoutEffect(() => {
-    latestTransformRef.current = transform;
-  }, [transform]);
-
   const cssScaleFactor = containerWidthPx / outputWidth;
   const baseScale = coverScale(image, outputWidth, outputHeight);
   const renderedWidthPx = image.width * baseScale * transform.scale * cssScaleFactor;
@@ -139,127 +110,47 @@ export default function EditingScreen({
     );
   }
 
-  function commitTransform(next: Transform): void {
-    latestTransformRef.current = next;
-    onTransformChange(next);
-  }
-
-  function startPan(pointerId: number, point: PointerPoint): void {
-    gestureRef.current = {
-      mode: 'pan',
-      pointerId,
-      lastClientX: point.x,
-      lastClientY: point.y,
-      workingTransform: latestTransformRef.current,
+  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>): void {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      // `transform` reflects the latest committed prop as of this render;
+      // handlePointerDown is a fresh closure each render, so this is never
+      // stale by the time the guest actually starts a drag.
+      workingTransform: transform,
     };
   }
 
-  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>): void {
-    event.currentTarget.setPointerCapture(event.pointerId);
-    activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-
-    if (activePointersRef.current.size === 2) {
-      const [idA, idB] = [...activePointersRef.current.keys()] as [number, number];
-      const pointA = activePointersRef.current.get(idA);
-      const pointB = activePointersRef.current.get(idB);
-      if (pointA && pointB) {
-        gestureRef.current = {
-          mode: 'pinch',
-          pointerIds: [idA, idB],
-          startDistance: distanceBetween(pointA, pointB),
-          baseTransform: latestTransformRef.current,
-        };
-      }
-      return;
-    }
-
-    if (activePointersRef.current.size === 1) {
-      startPan(event.pointerId, { x: event.clientX, y: event.clientY });
-    }
-    // A third simultaneous pointer is ignored: the active pan/pinch gesture
-    // (already anchored to the first two) continues unaffected.
-  }
-
   function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>): void {
-    if (activePointersRef.current.has(event.pointerId)) {
-      activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    }
-
-    const gesture = gestureRef.current;
-    if (!gesture) {
+    const drag = dragStateRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) {
       return;
     }
-
-    if (gesture.mode === 'pinch') {
-      const [idA, idB] = gesture.pointerIds;
-      if (event.pointerId !== idA && event.pointerId !== idB) {
-        return;
-      }
-      const pointA = activePointersRef.current.get(idA);
-      const pointB = activePointersRef.current.get(idB);
-      if (!pointA || !pointB || gesture.startDistance === 0) {
-        return;
-      }
-      const ratio = distanceBetween(pointA, pointB) / gesture.startDistance;
-      const nextScale = gesture.baseTransform.scale * ratio;
-      commitTransform(
-        applyZoom(gesture.baseTransform, nextScale, image, outputWidth, outputHeight),
-      );
-      return;
-    }
-
-    if (gesture.pointerId !== event.pointerId) {
-      return;
-    }
-    const deltaCssX = event.clientX - gesture.lastClientX;
-    const deltaCssY = event.clientY - gesture.lastClientY;
+    const deltaCssX = event.clientX - drag.lastClientX;
+    const deltaCssY = event.clientY - drag.lastClientY;
     if (deltaCssX === 0 && deltaCssY === 0) {
       return;
     }
     const deltaFrameX = deltaCssX / cssScaleFactor;
     const deltaFrameY = deltaCssY / cssScaleFactor;
-    const next = applyFrameDelta(gesture.workingTransform, deltaFrameX, deltaFrameY);
-    gesture.lastClientX = event.clientX;
-    gesture.lastClientY = event.clientY;
-    gesture.workingTransform = next;
-    commitTransform(next);
+    const next = applyFrameDelta(drag.workingTransform, deltaFrameX, deltaFrameY);
+    drag.lastClientX = event.clientX;
+    drag.lastClientY = event.clientY;
+    drag.workingTransform = next;
+    onTransformChange(next);
   }
 
-  function endPointer(event: ReactPointerEvent<HTMLDivElement>): void {
-    const hadPointer = activePointersRef.current.delete(event.pointerId);
-    if (!hadPointer) {
+  function endDrag(event: ReactPointerEvent<HTMLDivElement>): void {
+    const drag = dragStateRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) {
       return;
     }
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-
-    const gesture = gestureRef.current;
-    if (!gesture) {
-      return;
-    }
-
-    if (gesture.mode === 'pan') {
-      if (gesture.pointerId === event.pointerId) {
-        gestureRef.current = null;
-      }
-      return;
-    }
-
-    const [idA, idB] = gesture.pointerIds;
-    if (event.pointerId !== idA && event.pointerId !== idB) {
-      return;
-    }
-    // One finger of the pinch lifted. If the other is still down, hand off
-    // to a pan anchored at its current position instead of ending the
-    // gesture, so repositioning can continue with the remaining finger.
-    const remainingId = idA === event.pointerId ? idB : idA;
-    const remainingPoint = activePointersRef.current.get(remainingId);
-    if (remainingPoint) {
-      startPan(remainingId, remainingPoint);
-    } else {
-      gestureRef.current = null;
-    }
+    dragStateRef.current = null;
   }
 
   function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>): void {
@@ -282,12 +173,12 @@ export default function EditingScreen({
         return;
     }
     event.preventDefault();
-    commitTransform(applyFrameDelta(transform, deltaFrameX, deltaFrameY));
+    onTransformChange(applyFrameDelta(transform, deltaFrameX, deltaFrameY));
   }
 
   function handleZoomChange(event: ChangeEvent<HTMLInputElement>): void {
     const nextScale = Number(event.target.value);
-    commitTransform(applyZoom(transform, nextScale, image, outputWidth, outputHeight));
+    onTransformChange(applyZoom(transform, nextScale, image, outputWidth, outputHeight));
   }
 
   function handleSaveOrShare(): void {
@@ -312,8 +203,8 @@ export default function EditingScreen({
         aria-label="Drag to reposition the photo. Use arrow keys to move it."
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onPointerUp={endPointer}
-        onPointerCancel={endPointer}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
         onKeyDown={handleKeyDown}
       >
         <img
@@ -330,7 +221,7 @@ export default function EditingScreen({
         <img src={overlaySrc} alt="" aria-hidden="true" className={styles.overlay} />
       </div>
 
-      <p className={styles.hint}>Drag to reposition, pinch to zoom</p>
+      <p className={styles.hint}>Drag to reposition</p>
 
       <div className={styles.zoomRow}>
         <label htmlFor="editing-zoom-slider" className={styles.zoomLabel}>
