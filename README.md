@@ -135,10 +135,10 @@ optional, and not something CI or Playwright can substitute for:
 - [ ] Drag, pinch-to-zoom, and use the zoom slider; no empty edge ever appears. Lifting one finger
       mid-pinch should hand off to a smooth one-finger drag, not jump.
 - [ ] Exported image has the correct overlay alignment and resolution.
-- [ ] Tap "Save": the photo saves without any share sheet or destination picker ever appearing.
-      This is a plain browser download (`shareService.saveFallback`); iOS Safari's handling of it
-      is version-dependent and may open the image in a new tab instead of downloading it directly
-      — if so, confirm the guest can still long-press → "Save to Photos" from there.
+- [ ] Tap "Save": no share sheet or destination picker ever appears — instead the finished photo
+      shows on its own screen with "Touch and hold the image, then choose Save to Photos."
+      Confirm the long-press save actually works, and that the Download button beneath it also
+      works as a second way to save.
 - [ ] Tap "Share": the native share sheet opens with the image attached; save to Photos/Gallery
       and share to another app both succeed from within it.
 - [ ] Cancel the share sheet, then retry successfully.

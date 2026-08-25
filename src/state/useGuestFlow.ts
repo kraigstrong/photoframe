@@ -59,6 +59,7 @@ type Action =
   | { type: 'EXPORT_FAILED' }
   | { type: 'CHANGE_PHOTO' }
   | { type: 'SHARE_UNAVAILABLE_OR_FAILED' }
+  | { type: 'SAVE_REQUESTED' }
   | {
       type: 'BACK_TO_EDITING';
       image: WorkingImage;
@@ -102,6 +103,11 @@ function reducer(state: AppState, action: Action): AppState {
     case 'CHANGE_PHOTO':
       return { status: 'idle' };
     case 'SHARE_UNAVAILABLE_OR_FAILED':
+    case 'SAVE_REQUESTED':
+      // Both land on the same manual-save screen: it shows the actual
+      // composited photo with "touch and hold to save" instructions, which
+      // works identically on iOS Safari and Android Chrome regardless of
+      // whether the guest deliberately tapped Save or Share just failed.
       return state.status === 'ready'
         ? { status: 'fallbackSave', exported: state.exported }
         : state;
@@ -447,18 +453,26 @@ export function useGuestFlow(): UseGuestFlowResult {
   // (Messages, Mail, AirDrop, ...), and once handed off there's no browser
   // signal for which one they chose — so a "Save" action that goes through
   // it can't honestly promise "this never leaves the device via a share
-  // target". Going straight to the same download mechanism the fallback
-  // screen uses keeps that promise, at the cost of the same platform
-  // unreliability documented on saveFallback/FallbackScreen (e.g. iOS
-  // Safari may open the image in a new tab instead of downloading it).
+  // target".
+  //
+  // It also deliberately does NOT fire shareService.saveFallback directly
+  // the way this used to: on iOS Safari that anchor-download mechanism
+  // usually lands the file in Downloads/Files rather than Photos, and
+  // firing it silently would leave the guest on the editor with nothing
+  // but an optimistic "Saved!" toast and no way to actually get the photo
+  // into Photos. Routing through the same manual-save screen the
+  // share-unavailable/failed path already uses instead shows the guest
+  // their actual composited photo with "touch and hold to save to Photos"
+  // instructions — the one save method that works identically on iOS
+  // Safari and Android Chrome — with the Download button there as a
+  // secondary attempt for browsers where it does work directly.
   const save = useCallback(() => {
     const current = stateRef.current;
     if (current.status !== 'ready') {
       return;
     }
-    shareService.saveFallback(current.exported);
-    showConfirmationWhenVisible('saved');
-  }, [showConfirmationWhenVisible]);
+    dispatch({ type: 'SAVE_REQUESTED' });
+  }, []);
 
   const tryShareAgain = useCallback(() => {
     const current = stateRef.current;

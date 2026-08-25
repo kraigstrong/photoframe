@@ -535,35 +535,45 @@ describe('useGuestFlow: sharing and fallback', () => {
     void exported;
   });
 
-  it('save() creates and clicks a temporary anchor directly from ready, without touching navigator.share', async () => {
+  it('save() goes straight to the manual-save screen (never navigator.share, no premature confirmation)', async () => {
+    // Regression test (Codex review, save-share-split PR): save() used to
+    // fire shareService.saveFallback directly and immediately show "Saved!"
+    // while staying on the editor — on iOS Safari that download mechanism
+    // usually lands the file in Downloads/Files, not Photos, so the guest
+    // had no way to actually complete a save-to-Photos from there. Routing
+    // through the same screen the share-unavailable/failed path already
+    // uses guarantees the guest sees their composited photo with the
+    // "touch and hold to save to Photos" instruction.
     const shareMock = vi.fn();
     navigator.share = shareMock;
     navigator.canShare = () => true;
 
-    const { hook } = await getToReady();
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const { hook, exported } = await getToReady();
     act(() => {
       hook.result.current.save();
     });
 
-    expect(clickSpy).toHaveBeenCalledTimes(1);
+    expect(hook.result.current.state).toMatchObject({ status: 'fallbackSave', exported });
     expect(shareMock).not.toHaveBeenCalled();
-    expect(hook.result.current.state.status).toBe('ready');
-
-    clickSpy.mockRestore();
+    // No confirmation yet — that only fires once the guest actually taps
+    // Download (or completes a share) from the manual-save screen.
+    expect(hook.result.current.confirmation).toBeNull();
   });
 
-  it("sets confirmation to 'saved' after save(), not 'shared'", async () => {
+  it("download() from the manual-save screen sets 'saved' the same way whether reached via save() or a failed share", async () => {
     navigator.share = vi.fn();
     navigator.canShare = () => true;
 
     const { hook } = await getToReady();
     vi.useFakeTimers();
-    expect(hook.result.current.confirmation).toBeNull();
+    act(() => {
+      hook.result.current.save();
+    });
+    expect(hook.result.current.state.status).toBe('fallbackSave');
 
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     act(() => {
-      hook.result.current.save();
+      hook.result.current.download();
     });
     expect(hook.result.current.confirmation).toBe('saved');
 

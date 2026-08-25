@@ -136,16 +136,21 @@ test('an unsupported share target falls back to the manual-save screen, and back
   await expect(page.getByRole('button', { name: 'Share' })).toBeEnabled();
 });
 
-test('Save triggers a real download and never opens the share sheet, even when sharing is supported', async ({
+test('Save goes straight to the manual-save screen with the real photo visible, never opening the share sheet', async ({
   page,
 }) => {
+  // Regression test (Codex review): Save used to fire a silent background
+  // download and stay on the editor — on iOS Safari that mechanism usually
+  // lands the file in Downloads/Files, not Photos, leaving the guest no way
+  // to actually finish saving to Photos. It must route through the same
+  // screen that shows the composited photo with "touch and hold" save
+  // instructions, and must never call navigator.share even when sharing is
+  // fully supported.
   const shareCalls: unknown[] = [];
   await page.exposeBinding('recordShareCall', () => {
     shareCalls.push(true);
   });
   await page.addInitScript(() => {
-    // A guest with full Web Share support should still get a direct
-    // download from Save — it must never fall through to the share sheet.
     Object.defineProperty(window.navigator, 'share', {
       configurable: true,
       value: (..._args: unknown[]) => {
@@ -169,14 +174,19 @@ test('Save triggers a real download and never opens the share sheet, even when s
 
   const saveButton = page.getByRole('button', { name: 'Save' });
   await expect(saveButton).toBeEnabled({ timeout: 5000 });
+  await saveButton.click();
 
-  const [download] = await Promise.all([page.waitForEvent('download'), saveButton.click()]);
+  await expect(
+    page.getByText('Touch and hold the image, then choose Save to Photos.'),
+  ).toBeVisible();
+  await expect(page.getByAltText('Your finished photo, ready to save')).toBeVisible();
+  const downloadButton = page.getByRole('button', { name: 'Download' });
+  await expect(downloadButton).toBeVisible();
+
+  const [download] = await Promise.all([page.waitForEvent('download'), downloadButton.click()]);
   expect(download.suggestedFilename()).toMatch(/\.jpg$/);
   await expect(page.getByText('Saved!')).toBeVisible();
 
-  // Still on the editing screen (Share is still visible/enabled), and the
-  // share sheet was never invoked.
-  await expect(page.getByRole('button', { name: 'Share' })).toBeEnabled();
   expect(shareCalls).toHaveLength(0);
 });
 
