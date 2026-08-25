@@ -9,6 +9,7 @@ function makeProps(overrides: Partial<LandingScreenProps> = {}): LandingScreenPr
     eventName: 'Ada & Sam’s Wedding',
     instruction: 'Take or choose a photo to frame.',
     privacyMessage: 'Photos never leave your device.',
+    overlaySrc: '/overlay.png',
     cameraFacing: 'environment',
     overlayReady: true,
     onSelectFile: vi.fn(),
@@ -19,7 +20,8 @@ function makeProps(overrides: Partial<LandingScreenProps> = {}): LandingScreenPr
 describe('LandingScreen', () => {
   it('renders event name, instruction, and privacy message', () => {
     render(<LandingScreen {...makeProps()} />);
-    expect(screen.getByRole('heading', { name: 'Ada & Sam’s Wedding' })).toBeInTheDocument();
+    expect(screen.getByRole('heading')).toBeInTheDocument();
+    expect(screen.getByText('Ada & Sam’s Wedding')).toBeInTheDocument();
     expect(screen.getByText('Take or choose a photo to frame.')).toBeInTheDocument();
     expect(screen.getByText('Photos never leave your device.')).toBeInTheDocument();
   });
@@ -37,7 +39,7 @@ describe('LandingScreen', () => {
   it('disables both buttons and inputs while the overlay is not ready', () => {
     render(<LandingScreen {...makeProps({ overlayReady: false })} />);
     expect(screen.getByRole('button', { name: 'Take a photo' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Choose a photo' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Choose from camera roll' })).toBeDisabled();
     document.querySelectorAll('input[type="file"]').forEach((input) => {
       expect(input).toBeDisabled();
     });
@@ -46,7 +48,7 @@ describe('LandingScreen', () => {
   it('enables the buttons once the overlay is ready', () => {
     render(<LandingScreen {...makeProps({ overlayReady: true })} />);
     expect(screen.getByRole('button', { name: 'Take a photo' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Choose a photo' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Choose from camera roll' })).toBeEnabled();
   });
 
   it('calls onSelectFile with the chosen file and resets the input value', async () => {
@@ -76,7 +78,7 @@ describe('LandingScreen', () => {
     await user.click(screen.getByRole('button', { name: 'Take a photo' }));
     expect(clickSpies[0]).toHaveBeenCalledTimes(1);
 
-    await user.click(screen.getByRole('button', { name: 'Choose a photo' }));
+    await user.click(screen.getByRole('button', { name: 'Choose from camera roll' }));
     expect(clickSpies[1]).toHaveBeenCalledTimes(1);
   });
 });

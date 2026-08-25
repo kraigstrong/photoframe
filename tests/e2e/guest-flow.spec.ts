@@ -20,7 +20,7 @@ test('guest can select a photo, see it composited under the overlay, and reach r
   // the real bundled overlay asset decodes too fast locally to reliably
   // observe the disabled window here without flaking). This just confirms
   // the integration actually reaches enabled.
-  await expect(page.getByRole('button', { name: 'Choose a photo' })).toBeEnabled({
+  await expect(page.getByRole('button', { name: 'Choose from camera roll' })).toBeEnabled({
     timeout: 5000,
   });
 
@@ -48,7 +48,7 @@ test('zoom slider and arrow-key nudge both move the photo without exposing an em
   page,
 }) => {
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Choose a photo' })).toBeEnabled({
+  await expect(page.getByRole('button', { name: 'Choose from camera roll' })).toBeEnabled({
     timeout: 5000,
   });
   await page
@@ -79,7 +79,7 @@ test('selecting the same file twice reaches editing both times (input value rese
   page,
 }) => {
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Choose a photo' })).toBeEnabled({
+  await expect(page.getByRole('button', { name: 'Choose from camera roll' })).toBeEnabled({
     timeout: 5000,
   });
   const libraryInput = page.locator('input[type="file"]').nth(1);
@@ -91,7 +91,7 @@ test('selecting the same file twice reaches editing both times (input value rese
   ).toBeVisible();
 
   await page.getByRole('button', { name: 'Change photo' }).click();
-  await expect(page.getByRole('button', { name: 'Choose a photo' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Choose from camera roll' })).toBeEnabled();
 
   // Re-selecting the exact same file must still fire a change event and
   // reach editing again, not silently no-op.
@@ -110,7 +110,7 @@ test('an unsupported share target falls back to the manual-save screen, and back
     Object.defineProperty(window.navigator, 'share', { value: undefined, configurable: true });
   });
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Choose a photo' })).toBeEnabled({
+  await expect(page.getByRole('button', { name: 'Choose from camera roll' })).toBeEnabled({
     timeout: 5000,
   });
   await page
@@ -143,7 +143,7 @@ test('clicking Download on the fallback screen shows a self-dismissing confirmat
     Object.defineProperty(window.navigator, 'share', { value: undefined, configurable: true });
   });
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Choose a photo' })).toBeEnabled({
+  await expect(page.getByRole('button', { name: 'Choose from camera roll' })).toBeEnabled({
     timeout: 5000,
   });
   await page

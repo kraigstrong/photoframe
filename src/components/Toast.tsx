@@ -12,8 +12,11 @@ export type ToastProps = {
  */
 export default function Toast({ message }: ToastProps) {
   return (
-    <p className={styles.toast} role="status" aria-live="polite">
+    <div className={styles.toast} role="status" aria-live="polite">
+      <span className={styles.checkmark} aria-hidden="true">
+        ✓
+      </span>
       {message}
-    </p>
+    </div>
   );
 }
