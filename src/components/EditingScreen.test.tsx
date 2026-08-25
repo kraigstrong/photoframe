@@ -258,14 +258,13 @@ describe('EditingScreen', () => {
     vi.useRealTimers();
   });
 
-  it('shows a "Shared!" confirmation when confirmation is "shared"', () => {
-    renderWithMeasuredContainer(makeProps({ confirmation: 'shared' }));
-    expect(screen.getByText('Shared!')).toBeInTheDocument();
+  it('shows an "All set!" confirmation when confirmation is "done"', () => {
+    renderWithMeasuredContainer(makeProps({ confirmation: 'done' }));
+    expect(screen.getByText('All set!')).toBeInTheDocument();
   });
 
   it('shows no confirmation text when confirmation is null', () => {
     renderWithMeasuredContainer(makeProps({ confirmation: null }));
-    expect(screen.queryByText('Shared!')).not.toBeInTheDocument();
-    expect(screen.queryByText('Saved!')).not.toBeInTheDocument();
+    expect(screen.queryByText('All set!')).not.toBeInTheDocument();
   });
 });

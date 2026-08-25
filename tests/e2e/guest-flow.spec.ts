@@ -136,7 +136,7 @@ test('an unsupported share target falls back to the manual-save screen, and back
   await expect(page.getByRole('button', { name: 'Save or share' })).toBeEnabled();
 });
 
-test('clicking Download on the fallback screen shows a self-dismissing "Saved!" confirmation', async ({
+test('clicking Download on the fallback screen shows a self-dismissing confirmation', async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -156,8 +156,8 @@ test('clicking Download on the fallback screen shows a self-dismissing "Saved!" 
   await shareButton.click();
   await expect(page.getByRole('button', { name: 'Download' })).toBeVisible();
 
-  await expect(page.getByText('Saved!')).not.toBeVisible();
+  await expect(page.getByText('All set!')).not.toBeVisible();
   await page.getByRole('button', { name: 'Download' }).click();
-  await expect(page.getByText('Saved!')).toBeVisible();
-  await expect(page.getByText('Saved!')).not.toBeVisible({ timeout: 4000 });
+  await expect(page.getByText('All set!')).toBeVisible();
+  await expect(page.getByText('All set!')).not.toBeVisible({ timeout: 4000 });
 });

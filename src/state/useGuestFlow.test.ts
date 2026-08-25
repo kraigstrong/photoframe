@@ -535,7 +535,7 @@ describe('useGuestFlow: sharing and fallback', () => {
     void exported;
   });
 
-  it("sets confirmation to 'shared' after a successful share, then clears it on its own", async () => {
+  it("sets confirmation to 'done' after a successful share, then clears it on its own", async () => {
     navigator.share = vi.fn().mockResolvedValue(undefined);
     navigator.canShare = () => true;
 
@@ -548,7 +548,7 @@ describe('useGuestFlow: sharing and fallback', () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(hook.result.current.confirmation).toBe('shared');
+    expect(hook.result.current.confirmation).toBe('done');
 
     act(() => {
       vi.advanceTimersByTime(2500);
@@ -558,7 +558,7 @@ describe('useGuestFlow: sharing and fallback', () => {
     vi.useRealTimers();
   });
 
-  it("sets confirmation to 'saved' after download(), not 'shared'", async () => {
+  it("sets confirmation to 'done' after download()", async () => {
     const originalShare = (navigator as { share?: unknown }).share;
     // @ts-expect-error simulating an unsupported browser, forcing fallbackSave
     delete navigator.share;
@@ -577,7 +577,7 @@ describe('useGuestFlow: sharing and fallback', () => {
     act(() => {
       hook.result.current.download();
     });
-    expect(hook.result.current.confirmation).toBe('saved');
+    expect(hook.result.current.confirmation).toBe('done');
 
     act(() => {
       vi.advanceTimersByTime(2500);
@@ -609,8 +609,8 @@ describe('useGuestFlow: sharing and fallback', () => {
   });
 
   it(
-    'does not show "Shared!" while the page is hidden behind the native share sheet — only once ' +
-      'the guest actually returns to it',
+    'does not show the confirmation while the page is hidden behind the native share sheet — only ' +
+      'once the guest actually returns to it',
     async () => {
       // Regression test: navigator.share() resolves at hand-off time (e.g.
       // once Messages' compose screen appears), while this page is still
@@ -633,11 +633,11 @@ describe('useGuestFlow: sharing and fallback', () => {
       act(() => {
         document.dispatchEvent(new Event('visibilitychange'));
       });
-      expect(hook.result.current.confirmation).toBe('shared');
+      expect(hook.result.current.confirmation).toBe('done');
     },
   );
 
-  it('shows "Shared!" immediately when the page never left visibility (e.g. a fast/local share target)', async () => {
+  it('shows the confirmation immediately when the page never left visibility (e.g. a fast/local share target)', async () => {
     navigator.share = vi.fn().mockResolvedValue(undefined);
     navigator.canShare = () => true;
 
@@ -649,10 +649,10 @@ describe('useGuestFlow: sharing and fallback', () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(hook.result.current.confirmation).toBe('shared');
+    expect(hook.result.current.confirmation).toBe('done');
   });
 
-  it('does not show "Saved!" until the page becomes visible again after download()', async () => {
+  it('does not show the confirmation until the page becomes visible again after download()', async () => {
     const originalShare = (navigator as { share?: unknown }).share;
     // @ts-expect-error simulating an unsupported browser, forcing fallbackSave
     delete navigator.share;
@@ -676,7 +676,7 @@ describe('useGuestFlow: sharing and fallback', () => {
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
-    expect(hook.result.current.confirmation).toBe('saved');
+    expect(hook.result.current.confirmation).toBe('done');
 
     clickSpy.mockRestore();
     (navigator as { share?: unknown }).share = originalShare;

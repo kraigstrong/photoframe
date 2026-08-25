@@ -372,7 +372,7 @@ export default function EditingScreen({
           </p>
         )}
       </div>
-      {confirmation ? <Toast message={confirmation === 'shared' ? 'Shared!' : 'Saved!'} /> : null}
+      {confirmation ? <Toast message="All set!" /> : null}
     </main>
   );
 }

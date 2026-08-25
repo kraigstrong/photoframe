@@ -22,7 +22,7 @@ import { shareService } from '../lib/share/index.ts';
 import type { AppError, AppErrorKind, AppState } from './appState.ts';
 
 const EXPORT_DEBOUNCE_MS = 400;
-/** How long a "Shared"/"Saved" confirmation stays visible before self-clearing. */
+/** How long the confirmation toast stays visible before self-clearing. */
 const CONFIRMATION_DURATION_MS = 2500;
 
 /**
@@ -31,8 +31,13 @@ const CONFIRMATION_DURATION_MS = 2500;
  * fallback Download button being clicked. There is no browser signal for
  * the manual "touch and hold to save" gesture, so that path stays silent —
  * a real platform limitation, not an oversight.
+ *
+ * Deliberately a single generic kind rather than distinguishing "shared"
+ * from "saved": once the guest hands off to navigator.share()'s OS sheet,
+ * there's no signal for which destination they picked in it (including
+ * "Save Image"), so a label that claims to know would often be wrong.
  */
-export type ShareConfirmation = 'shared' | 'saved' | null;
+export type ShareConfirmation = 'done' | null;
 
 const FRIENDLY_MESSAGES: Record<AppErrorKind, string> = {
   overlayLoadFailed: "We couldn't load the event frame. Check your connection and try again.",
@@ -159,11 +164,11 @@ export function useGuestFlow(): UseGuestFlowResult {
   const confirmationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingVisibilityListenerRef = useRef<(() => void) | null>(null);
 
-  const showConfirmation = useCallback((kind: 'shared' | 'saved') => {
+  const showConfirmation = useCallback(() => {
     if (confirmationTimerRef.current) {
       clearTimeout(confirmationTimerRef.current);
     }
-    setConfirmation(kind);
+    setConfirmation('done');
     confirmationTimerRef.current = setTimeout(() => {
       confirmationTimerRef.current = null;
       setConfirmation(null);
@@ -177,29 +182,26 @@ export function useGuestFlow(): UseGuestFlowResult {
   // guest actually returns. Showing the confirmation immediately would run
   // its whole auto-dismiss clock while the guest can't possibly see it.
   // Wait for the page to actually be visible again first.
-  const showConfirmationWhenVisible = useCallback(
-    (kind: 'shared' | 'saved') => {
-      if (pendingVisibilityListenerRef.current) {
-        document.removeEventListener('visibilitychange', pendingVisibilityListenerRef.current);
-        pendingVisibilityListenerRef.current = null;
-      }
-      if (document.visibilityState === 'visible') {
-        showConfirmation(kind);
+  const showConfirmationWhenVisible = useCallback(() => {
+    if (pendingVisibilityListenerRef.current) {
+      document.removeEventListener('visibilitychange', pendingVisibilityListenerRef.current);
+      pendingVisibilityListenerRef.current = null;
+    }
+    if (document.visibilityState === 'visible') {
+      showConfirmation();
+      return;
+    }
+    const onVisible = (): void => {
+      if (document.visibilityState !== 'visible') {
         return;
       }
-      const onVisible = (): void => {
-        if (document.visibilityState !== 'visible') {
-          return;
-        }
-        document.removeEventListener('visibilitychange', onVisible);
-        pendingVisibilityListenerRef.current = null;
-        showConfirmation(kind);
-      };
-      pendingVisibilityListenerRef.current = onVisible;
-      document.addEventListener('visibilitychange', onVisible);
-    },
-    [showConfirmation],
-  );
+      document.removeEventListener('visibilitychange', onVisible);
+      pendingVisibilityListenerRef.current = null;
+      showConfirmation();
+    };
+    pendingVisibilityListenerRef.current = onVisible;
+    document.addEventListener('visibilitychange', onVisible);
+  }, [showConfirmation]);
 
   // Kept outside AppState (whose 'error' variant intentionally carries no
   // recovery payload) purely so exportFailed/shareFailed retry can restore
@@ -420,7 +422,7 @@ export function useGuestFlow(): UseGuestFlowResult {
       shareService.share(exported).then((outcome) => {
         sharePendingRef.current = false;
         if (outcome.result === 'shared') {
-          showConfirmationWhenVisible('shared');
+          showConfirmationWhenVisible();
           return;
         }
         if (outcome.result === 'cancelled') {
@@ -455,7 +457,7 @@ export function useGuestFlow(): UseGuestFlowResult {
       return;
     }
     shareService.saveFallback(current.exported);
-    showConfirmationWhenVisible('saved');
+    showConfirmationWhenVisible();
   }, [showConfirmationWhenVisible]);
 
   const backToEditing = useCallback(() => {
