@@ -83,6 +83,13 @@ function makeExportedImage(overrides: Partial<ExportedImage> = {}): ExportedImag
 
 const BASELINE_TRANSFORM: Transform = { x: 0, y: 0, scale: 1 };
 
+function setDocumentVisibility(state: 'visible' | 'hidden'): void {
+  Object.defineProperty(document, 'visibilityState', {
+    value: state,
+    configurable: true,
+  });
+}
+
 beforeEach(() => {
   createdImages = [];
   // @ts-expect-error test-only global shim; see FakeImage above.
@@ -595,5 +602,83 @@ describe('useGuestFlow: sharing and fallback', () => {
 
     expect(hook.result.current.state.status).toBe('ready');
     expect(hook.result.current.confirmation).toBeNull();
+  });
+
+  afterEach(() => {
+    setDocumentVisibility('visible');
+  });
+
+  it(
+    'does not show "Shared!" while the page is hidden behind the native share sheet — only once ' +
+      'the guest actually returns to it',
+    async () => {
+      // Regression test: navigator.share() resolves at hand-off time (e.g.
+      // once Messages' compose screen appears), while this page is still
+      // hidden behind it. Showing the confirmation immediately would run
+      // its whole auto-dismiss clock before the guest could ever see it.
+      navigator.share = vi.fn().mockResolvedValue(undefined);
+      navigator.canShare = () => true;
+
+      const { hook } = await getToReady();
+      setDocumentVisibility('hidden');
+
+      await act(async () => {
+        hook.result.current.saveOrShare();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(hook.result.current.confirmation).toBeNull();
+
+      setDocumentVisibility('visible');
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      expect(hook.result.current.confirmation).toBe('shared');
+    },
+  );
+
+  it('shows "Shared!" immediately when the page never left visibility (e.g. a fast/local share target)', async () => {
+    navigator.share = vi.fn().mockResolvedValue(undefined);
+    navigator.canShare = () => true;
+
+    const { hook } = await getToReady();
+    setDocumentVisibility('visible');
+
+    await act(async () => {
+      hook.result.current.saveOrShare();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(hook.result.current.confirmation).toBe('shared');
+  });
+
+  it('does not show "Saved!" until the page becomes visible again after download()', async () => {
+    const originalShare = (navigator as { share?: unknown }).share;
+    // @ts-expect-error simulating an unsupported browser, forcing fallbackSave
+    delete navigator.share;
+
+    const { hook } = await getToReady();
+    await act(async () => {
+      hook.result.current.saveOrShare();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(hook.result.current.state.status).toBe('fallbackSave');
+
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    setDocumentVisibility('hidden');
+    act(() => {
+      hook.result.current.download();
+    });
+    expect(hook.result.current.confirmation).toBeNull();
+
+    setDocumentVisibility('visible');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(hook.result.current.confirmation).toBe('saved');
+
+    clickSpy.mockRestore();
+    (navigator as { share?: unknown }).share = originalShare;
   });
 });
