@@ -377,7 +377,9 @@ export default function EditingScreen({
           Save or share
         </button>
         <p className={styles.helperMessage} aria-live="polite">
-          {exportReady ? 'Choose Save Image to keep it, or pick an app to share it.' : 'Preparing photo…'}
+          {exportReady
+            ? 'Choose Save Image to keep it, or pick an app to share it.'
+            : 'Preparing photo…'}
         </p>
       </div>
       {confirmation ? <Toast message="All set!" /> : null}
