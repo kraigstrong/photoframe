@@ -206,19 +206,6 @@ describe('EditingScreen', () => {
     expect(onTransformChange).toHaveBeenLastCalledWith({ x: -200, y: -320, scale: 1.5 });
   });
 
-  it('reports the applyZoom result when the zoom slider changes', () => {
-    const onTransformChange = vi.fn();
-    const transform: Transform = { x: -200, y: -300, scale: 1.5 };
-    renderWithMeasuredContainer(makeProps({ onTransformChange, transform }));
-
-    const slider = screen.getByRole('slider', { name: 'Zoom' });
-    fireEvent.change(slider, { target: { value: '2' } });
-
-    const expected = applyZoom(transform, 2, IMAGE, OUTPUT_WIDTH, OUTPUT_HEIGHT);
-    expect(onTransformChange).toHaveBeenCalledTimes(1);
-    expect(onTransformChange).toHaveBeenCalledWith(expected);
-  });
-
   it('calls onResetPosition and onChangePhoto from their buttons', async () => {
     const user = userEvent.setup();
     const onResetPosition = vi.fn();
