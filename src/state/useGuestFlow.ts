@@ -25,6 +25,15 @@ const EXPORT_DEBOUNCE_MS = 400;
 /** How long the confirmation toast stays visible before self-clearing. */
 const CONFIRMATION_DURATION_MS = 2500;
 
+/** `eventConfig.overlays` reshaped for `EditingScreenProps` — computed once
+ * since the config is a static, import-time constant for the app's whole
+ * lifetime. */
+const overlaysForPicker = eventConfig.overlays.map((overlay) => ({
+  id: overlay.id,
+  label: overlay.label,
+  src: overlay.asset,
+}));
+
 /**
  * A brief, self-dismissing confirmation surfaced after an action this hook
  * can actually observe completing: `navigator.share()` resolving, or the
@@ -133,7 +142,13 @@ function reducer(state: AppState, action: Action): AppState {
 export type UseGuestFlowResult = {
   state: AppState;
   overlayReady: boolean;
+  /** Decorative single overlay for LandingScreen's preview frame — always the
+   * first configured design, independent of the editing-screen picker. */
   overlaySrc: string;
+  /** Every configured frame design, for the editing-screen picker. */
+  overlays: { id: string; label: string; src: string }[];
+  selectedOverlayIndex: number;
+  selectOverlay: (index: number) => void;
   eventName: string;
   instruction: string;
   privacyMessage: string;
@@ -158,7 +173,15 @@ export function useGuestFlow(): UseGuestFlowResult {
   }, [state]);
 
   const [overlayReady, setOverlayReady] = useState(false);
-  const overlayImageRef = useRef<CanvasImageSource | null>(null);
+  const overlayImagesRef = useRef<(CanvasImageSource | null)[]>(
+    eventConfig.overlays.map(() => null),
+  );
+
+  const [selectedOverlayIndex, setSelectedOverlayIndex] = useState(0);
+  const selectedOverlayIndexRef = useRef(selectedOverlayIndex);
+  useLayoutEffect(() => {
+    selectedOverlayIndexRef.current = selectedOverlayIndex;
+  }, [selectedOverlayIndex]);
 
   const [confirmation, setConfirmation] = useState<ShareConfirmation>(null);
   const confirmationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -224,34 +247,49 @@ export function useGuestFlow(): UseGuestFlowResult {
   const exportOpIdRef = useRef(0);
   const exportTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadOverlay = useCallback(() => {
-    const img = new Image();
-    img.addEventListener(
-      'load',
-      () => {
-        overlayImageRef.current = img;
-        setOverlayReady(true);
-      },
-      { once: true },
-    );
-    img.addEventListener(
-      'error',
-      () => {
-        dispatch({ type: 'OVERLAY_FAILED' });
-      },
-      { once: true },
-    );
-    img.src = eventConfig.overlayAsset;
+  const loadOverlays = useCallback(() => {
+    overlayImagesRef.current = eventConfig.overlays.map(() => null);
+    let loadedCount = 0;
+    let failed = false;
+    eventConfig.overlays.forEach((overlay, index) => {
+      const img = new Image();
+      img.addEventListener(
+        'load',
+        () => {
+          if (failed) {
+            return;
+          }
+          overlayImagesRef.current[index] = img;
+          loadedCount += 1;
+          if (loadedCount === eventConfig.overlays.length) {
+            setOverlayReady(true);
+          }
+        },
+        { once: true },
+      );
+      img.addEventListener(
+        'error',
+        () => {
+          if (failed) {
+            return;
+          }
+          failed = true;
+          dispatch({ type: 'OVERLAY_FAILED' });
+        },
+        { once: true },
+      );
+      img.src = overlay.asset;
+    });
   }, []);
 
   useEffect(() => {
-    loadOverlay();
+    loadOverlays();
     // Overlay lifetime spans the whole app session; nothing to release here
-    // (a plain same-origin <img>, not an object URL).
-  }, [loadOverlay]);
+    // (plain same-origin <img>s, not object URLs).
+  }, [loadOverlays]);
 
   const runExport = useCallback((image: WorkingImage, transform: Transform) => {
-    const overlay = overlayImageRef.current;
+    const overlay = overlayImagesRef.current[selectedOverlayIndexRef.current];
     if (!overlay) {
       return;
     }
@@ -389,6 +427,39 @@ export function useGuestFlow(): UseGuestFlowResult {
     updateTransform(baseline);
   }, [updateTransform]);
 
+  const selectOverlay = useCallback(
+    (index: number) => {
+      if (index === selectedOverlayIndexRef.current) {
+        return;
+      }
+      selectedOverlayIndexRef.current = index;
+      setSelectedOverlayIndex(index);
+
+      const current = stateRef.current;
+      if (
+        current.status !== 'editing' &&
+        current.status !== 'preparingExport' &&
+        current.status !== 'ready'
+      ) {
+        // Nothing exported yet to re-bake; the next export (once decoding
+        // finishes) will already pick up overlayImagesRef via
+        // selectedOverlayIndexRef.
+        return;
+      }
+      const { image, transform } = current;
+      if (current.status === 'ready') {
+        current.exported.release();
+      }
+      // Bounces 'ready' back to 'editing' with the same transform, purely to
+      // invalidate the stale export (same trick TRANSFORM_CHANGED already
+      // supports) — Save/Share disables and shows "Preparing photo…" again
+      // until the re-bake with the newly selected overlay completes.
+      dispatch({ type: 'TRANSFORM_CHANGED', transform });
+      scheduleExport(image, transform);
+    },
+    [scheduleExport],
+  );
+
   const changePhoto = useCallback(() => {
     const current = stateRef.current;
     decodeAbortRef.current?.abort();
@@ -486,7 +557,7 @@ export function useGuestFlow(): UseGuestFlowResult {
       return;
     }
     if (current.error.kind === 'overlayLoadFailed') {
-      loadOverlay();
+      loadOverlays();
       dispatch({ type: 'RETRY_TO_IDLE' });
       return;
     }
@@ -503,7 +574,7 @@ export function useGuestFlow(): UseGuestFlowResult {
       }
     }
     dispatch({ type: 'RETRY_TO_IDLE' });
-  }, [loadOverlay, scheduleExport]);
+  }, [loadOverlays, scheduleExport]);
 
   // Release whatever the guest currently holds if the whole app unmounts
   // (e.g. hot reload in dev). In production this only ever mounts once.
@@ -525,7 +596,10 @@ export function useGuestFlow(): UseGuestFlowResult {
   return {
     state,
     overlayReady,
-    overlaySrc: eventConfig.overlayAsset,
+    overlaySrc: overlaysForPicker[0]!.src,
+    overlays: overlaysForPicker,
+    selectedOverlayIndex,
+    selectOverlay,
     eventName: eventConfig.eventName,
     instruction: eventConfig.instruction,
     privacyMessage: eventConfig.privacyMessage,

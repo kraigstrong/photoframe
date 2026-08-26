@@ -34,8 +34,12 @@ export type DecodingScreenProps = {
 export type EditingScreenProps = {
   eventName: string;
   image: WorkingImage;
-  /** Same-origin overlay asset URL, rendered above the photo, decorative. */
-  overlaySrc: string;
+  /** The frame designs the guest can pick between. Rendered above the photo,
+   * decorative; the picker UI (tap to choose) only appears when there's more
+   * than one. */
+  overlays: { id: string; label: string; src: string }[];
+  selectedOverlayIndex: number;
+  onSelectOverlay: (index: number) => void;
   outputWidth: number;
   outputHeight: number;
   transform: Transform;

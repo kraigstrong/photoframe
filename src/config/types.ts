@@ -13,6 +13,15 @@ export type EventTheme = {
   accentText: string;
 };
 
+export type EventOverlay = {
+  /** Stable key, used as the React list key and in tests. */
+  id: string;
+  /** Accessible label shown in the editing-screen overlay picker. */
+  label: string;
+  /** Same-origin URL of the transparent overlay PNG. */
+  asset: string;
+};
+
 export type EventConfig = {
   /** Display name of the event, shown in the landing state. */
   eventName: string;
@@ -22,8 +31,10 @@ export type EventConfig = {
   instruction: string;
   /** Privacy reassurance. Must state the photo is not uploaded or stored. */
   privacyMessage: string;
-  /** Same-origin URL of the transparent overlay PNG. */
-  overlayAsset: string;
+  /** The frame designs the guest can choose between on the editing screen.
+   * Always at least one; the picker UI only appears when there's more than
+   * one. */
+  overlays: EventOverlay[];
   /** Exported image width in pixels. */
   outputWidth: number;
   /** Exported image height in pixels. */

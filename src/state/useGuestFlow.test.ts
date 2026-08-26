@@ -52,9 +52,11 @@ function latestImage(): FakeImage {
   return img;
 }
 
+/** Fires `load` on every overlay `Image()` the hook has constructed so far —
+ * it decodes all configured overlays in parallel, not just one. */
 async function loadOverlaySuccessfully(): Promise<void> {
   await act(async () => {
-    latestImage().fireLoad();
+    createdImages.forEach((img) => img.fireLoad());
     await Promise.resolve();
   });
 }

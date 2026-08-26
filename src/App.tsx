@@ -56,7 +56,9 @@ export default function App() {
         <EditingScreen
           eventName={flow.eventName}
           image={state.image}
-          overlaySrc={flow.overlaySrc}
+          overlays={flow.overlays}
+          selectedOverlayIndex={flow.selectedOverlayIndex}
+          onSelectOverlay={flow.selectOverlay}
           outputWidth={eventConfig.outputWidth}
           outputHeight={eventConfig.outputHeight}
           transform={state.transform}
@@ -74,7 +76,9 @@ export default function App() {
         <EditingScreen
           eventName={flow.eventName}
           image={state.image}
-          overlaySrc={flow.overlaySrc}
+          overlays={flow.overlays}
+          selectedOverlayIndex={flow.selectedOverlayIndex}
+          onSelectOverlay={flow.selectOverlay}
           outputWidth={eventConfig.outputWidth}
           outputHeight={eventConfig.outputHeight}
           transform={state.transform}

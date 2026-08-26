@@ -33,15 +33,46 @@ test('guest can select a photo, see it composited under the overlay, and reach r
   });
   await expect(dragRegion).toBeVisible();
 
-  const images = page.locator('img');
-  await expect(images).toHaveCount(2);
+  // Scoped to the drag region so the overlay-picker thumbnails below (each
+  // also an <img>) don't affect this count.
+  const previewImages = dragRegion.locator('img');
+  await expect(previewImages).toHaveCount(2);
   // The overlay must render above the photo and never bear a transform.
-  const overlay = images.nth(1);
+  const overlay = previewImages.nth(1);
   await expect(overlay).toHaveAttribute('aria-hidden', 'true');
   await expect(overlay).toHaveJSProperty('style.transform', '');
 
   const shareButton = page.getByRole('button', { name: 'Save or share' });
   await expect(shareButton).toBeEnabled({ timeout: 5000 });
+});
+
+test('tapping an overlay-picker option swaps the on-screen frame design', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Choose from camera roll' })).toBeEnabled({
+    timeout: 5000,
+  });
+  await page
+    .locator('input[type="file"]')
+    .nth(1)
+    .setInputFiles(path.join(FIXTURES_DIR, 'square.jpg'));
+
+  const dragRegion = page.getByRole('group', {
+    name: 'Drag to reposition the photo. Use arrow keys to move it.',
+  });
+  await expect(dragRegion).toBeVisible();
+  const overlay = dragRegion.locator('img').nth(1);
+  const originalSrc = await overlay.getAttribute('src');
+
+  const picker = page.getByRole('radiogroup', { name: 'Choose a frame design' });
+  const options = picker.getByRole('radio');
+  await expect(options).toHaveCount(3);
+  await expect(options.nth(0)).toHaveAttribute('aria-checked', 'true');
+
+  await options.nth(1).click();
+
+  await expect(options.nth(1)).toHaveAttribute('aria-checked', 'true');
+  await expect(options.nth(0)).toHaveAttribute('aria-checked', 'false');
+  await expect(overlay).not.toHaveAttribute('src', originalSrc ?? '');
 });
 
 test('arrow-key nudge moves the photo without exposing an empty edge', async ({ page }) => {
@@ -80,7 +111,7 @@ test('selecting the same file twice reaches editing both times (input value rese
     page.getByRole('group', { name: 'Drag to reposition the photo. Use arrow keys to move it.' }),
   ).toBeVisible();
 
-  await page.getByRole('button', { name: 'Change photo' }).click();
+  await page.getByRole('button', { name: 'Back' }).click();
   await expect(page.getByRole('button', { name: 'Choose from camera roll' })).toBeEnabled();
 
   // Re-selecting the exact same file must still fire a change event and

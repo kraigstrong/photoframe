@@ -27,6 +27,18 @@
   cursor: pointer;
 }
 
+.resetButton {
+  justify-self: end;
+  appearance: none;
+  border: 0;
+  background: none;
+  min-height: auto;
+  padding: var(--space-1) 0;
+  font-size: 0.9375rem;
+  color: var(--accent);
+  cursor: pointer;
+}
+
 .headerLabel {
   justify-self: center;
   font-size: 0.625rem;
@@ -72,19 +84,34 @@
   color: var(--muted-text);
 }
 
-.actions {
+.overlayPicker {
   display: flex;
-  gap: var(--space-3);
-  width: min(92vw, 360px);
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
 }
 
-.secondaryButton {
-  flex: 1;
-  padding: var(--space-3) var(--space-3);
-  font-size: 0.9375rem;
+.overlayOption {
+  width: var(--tap-target);
+  height: var(--tap-target);
+  padding: 2px;
+  min-height: auto;
   background: var(--surface);
-  color: var(--text);
-  border-color: var(--muted-text);
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.overlayOption[data-selected] {
+  border-color: var(--accent);
+}
+
+.overlayOption img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: calc(var(--radius) - 2px);
 }
 
 .shareRow {
@@ -115,4 +142,19 @@
   margin: 0;
   font-size: 0.8125rem;
   color: var(--muted-text);
+}
+
+/* Short phones (e.g. iPhone SE) don't have enough vertical room for the full
+ * padding/gaps used everywhere else — tighten them, and shrink the preview
+ * frame a bit, rather than let the screen scroll. */
+@media (max-height: 700px) {
+  .shell {
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-5);
+  }
+
+  .header,
+  .preview {
+    width: min(88vw, 420px);
+  }
 }
