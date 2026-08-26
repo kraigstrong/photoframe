@@ -455,9 +455,17 @@ export function useGuestFlow(): UseGuestFlowResult {
       // supports) — Save/Share disables and shows "Preparing photo…" again
       // until the re-bake with the newly selected overlay completes.
       dispatch({ type: 'TRANSFORM_CHANGED', transform });
-      scheduleExport(image, transform);
+      // Unlike a drag/pinch (a rapid stream of updates worth debouncing), a
+      // picker tap is a single discrete action — run the re-export
+      // immediately instead of adding EXPORT_DEBOUNCE_MS of pure wait on top
+      // of the already-instant live preview swap.
+      if (exportTimerRef.current) {
+        clearTimeout(exportTimerRef.current);
+        exportTimerRef.current = null;
+      }
+      runExport(image, transform);
     },
-    [scheduleExport],
+    [runExport],
   );
 
   const changePhoto = useCallback(() => {
