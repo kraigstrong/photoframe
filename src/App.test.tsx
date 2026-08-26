@@ -26,7 +26,6 @@ function baseFlow(overrides: Partial<UseGuestFlowResult>): UseGuestFlowResult {
     selectedOverlayIndex: 0,
     selectOverlay: vi.fn(),
     eventName: eventConfig.eventName,
-    instruction: eventConfig.instruction,
     privacyMessage: eventConfig.privacyMessage,
     cameraFacing: eventConfig.cameraFacing,
     confirmation: null,

@@ -17,9 +17,8 @@ describe('App shell (idle/LandingScreen, via the real hook)', () => {
     expect(screen.getByText(eventConfig.eventName)).toBeInTheDocument();
   });
 
-  it('shows the instruction and privacy message', () => {
+  it('shows the privacy message', () => {
     render(<App />);
-    expect(screen.getByText(eventConfig.instruction)).toBeInTheDocument();
     expect(screen.getByText(eventConfig.privacyMessage)).toBeInTheDocument();
   });
 });

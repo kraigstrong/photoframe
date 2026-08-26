@@ -10,7 +10,6 @@ import styles from './LandingScreen.module.css';
  */
 export default function LandingScreen({
   eventName,
-  instruction,
   privacyMessage,
   overlaySrc,
   cameraFacing,
@@ -34,7 +33,6 @@ export default function LandingScreen({
     <main className={styles.shell}>
       <p className={styles.eyebrow}>{eventName}</p>
       <h1 className={styles.headline}>Frame your photo</h1>
-      <p className={styles.instruction}>{instruction}</p>
 
       <div className={styles.preview} aria-hidden="true">
         <img src={overlaySrc} alt="" className={styles.previewOverlay} />

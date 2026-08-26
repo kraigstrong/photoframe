@@ -38,7 +38,6 @@ export default function App() {
       return (
         <LandingScreen
           eventName={flow.eventName}
-          instruction={flow.instruction}
           privacyMessage={flow.privacyMessage}
           overlaySrc={flow.overlaySrc}
           cameraFacing={flow.cameraFacing}

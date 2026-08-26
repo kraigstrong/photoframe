@@ -14,7 +14,6 @@ import overlayAssetAlt4 from '../assets/overlay-panther-prowl-2026-alt-4.png';
 export const eventConfig: EventConfig = {
   eventName: 'Panther Prowl 2026',
   pageTitle: 'Panther Prowl 2026 — Photo Frame',
-  instruction: 'We add the 2026 frame right here on your phone.',
   privacyMessage: 'Your photo stays on your phone. It is not uploaded.',
   overlays: [
     { id: 'panther-prowl-2026', label: 'Design 1', asset: overlayAsset },

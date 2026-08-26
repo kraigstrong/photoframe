@@ -27,8 +27,6 @@ export type EventConfig = {
   eventName: string;
   /** Value used for `document.title`. */
   pageTitle: string;
-  /** Short instruction shown beneath the event name. */
-  instruction: string;
   /** Privacy reassurance. Must state the photo is not uploaded or stored. */
   privacyMessage: string;
   /** The frame designs the guest can choose between on the editing screen.
