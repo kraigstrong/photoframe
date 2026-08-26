@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -91,6 +92,19 @@ export default function EditingScreen({
 
   const [isShareCoolingDown, setIsShareCoolingDown] = useState(false);
   const shareCooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Set when a tap lands during the brief window where the button doesn't
+   * look disabled yet (see showPreparing below) but the export isn't
+   * actually ready — honored as soon as it is, instead of silently
+   * discarding a tap the guest can plainly see they made. */
+  const pendingShareRef = useRef(false);
+
+  const performShare = useCallback(() => {
+    setIsShareCoolingDown(true);
+    onSaveOrShare();
+    shareCooldownTimerRef.current = setTimeout(() => {
+      setIsShareCoolingDown(false);
+    }, SHARE_COOLDOWN_MS);
+  }, [onSaveOrShare]);
 
   /** Debounced view of `!exportReady`, so a fast re-export never flashes the
    * button/helper text into their "preparing" look and back. The actual
@@ -113,6 +127,13 @@ export default function EditingScreen({
       setShowPreparing(false);
     };
   }, [exportReady]);
+
+  useEffect(() => {
+    if (exportReady && pendingShareRef.current) {
+      pendingShareRef.current = false;
+      performShare();
+    }
+  }, [exportReady, performShare]);
 
   useLayoutEffect(() => {
     const el = containerRef.current;
@@ -311,14 +332,14 @@ export default function EditingScreen({
   }
 
   function handleSaveOrShare(): void {
-    if (!exportReady || isShareCoolingDown) {
+    if (isShareCoolingDown) {
       return;
     }
-    setIsShareCoolingDown(true);
-    onSaveOrShare();
-    shareCooldownTimerRef.current = setTimeout(() => {
-      setIsShareCoolingDown(false);
-    }, SHARE_COOLDOWN_MS);
+    if (!exportReady) {
+      pendingShareRef.current = true;
+      return;
+    }
+    performShare();
   }
 
   return (

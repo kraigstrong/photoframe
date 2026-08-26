@@ -299,6 +299,28 @@ describe('EditingScreen', () => {
     vi.useRealTimers();
   });
 
+  it('honors a Save/Share tap that lands during the grace window once the export catches up', () => {
+    vi.useFakeTimers();
+    const onSaveOrShare = vi.fn();
+    const { rerender } = renderWithMeasuredContainer(
+      makeProps({ onSaveOrShare, exportReady: true }),
+    );
+
+    rerender(<EditingScreen {...makeProps({ onSaveOrShare, exportReady: false })} />);
+    // Still within PREPARING_INDICATOR_DELAY_MS, so the button doesn't look
+    // disabled yet — but the export genuinely isn't ready.
+    const button = screen.getByRole('button', { name: 'Save or share' });
+    expect(button).not.toBeDisabled();
+
+    fireEvent.click(button);
+    expect(onSaveOrShare).not.toHaveBeenCalled();
+
+    rerender(<EditingScreen {...makeProps({ onSaveOrShare, exportReady: true })} />);
+    expect(onSaveOrShare).toHaveBeenCalledTimes(1);
+
+    vi.useRealTimers();
+  });
+
   it('calls onSaveOrShare once per click and debounces rapid double-taps', () => {
     vi.useFakeTimers();
     const onSaveOrShare = vi.fn();
