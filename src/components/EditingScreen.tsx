@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -20,6 +21,12 @@ const FALLBACK_CONTAINER_WIDTH_PX = 360;
 /** How long the Save/Share button stays disabled after a tap, to absorb
  * accidental double-taps without coordinating with the hook. */
 const SHARE_COOLDOWN_MS = 1000;
+
+/** How long `exportReady` must stay false before the button/helper text
+ * actually switch to their "preparing" look. A re-export that resolves
+ * faster than this (e.g. after switching overlays) never visibly flashes
+ * the button — the guest just sees the frame swap and nothing else. */
+const PREPARING_INDICATOR_DELAY_MS = 150;
 
 type PointerPoint = { x: number; y: number };
 
@@ -84,6 +91,28 @@ export default function EditingScreen({
 
   const [isShareCoolingDown, setIsShareCoolingDown] = useState(false);
   const shareCooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** Debounced view of `!exportReady`, so a fast re-export never flashes the
+   * button/helper text into their "preparing" look and back. The actual
+   * click guard in handleSaveOrShare still reads the real `exportReady`
+   * prop, so this is purely cosmetic — it never lets a stale export through. */
+  const [showPreparing, setShowPreparing] = useState(!exportReady);
+
+  useEffect(() => {
+    if (exportReady) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setShowPreparing(true);
+    }, PREPARING_INDICATOR_DELAY_MS);
+    // Runs when exportReady flips back to true (before the "ready" effect
+    // instance below no-ops) or on unmount — either way, the pending timer
+    // is scrapped and any stale "preparing" look is cleared.
+    return () => {
+      clearTimeout(timer);
+      setShowPreparing(false);
+    };
+  }, [exportReady]);
 
   useLayoutEffect(() => {
     const el = containerRef.current;
@@ -361,15 +390,15 @@ export default function EditingScreen({
         <button
           type="button"
           className={styles.primaryButton}
-          disabled={!exportReady || isShareCoolingDown}
+          disabled={showPreparing || isShareCoolingDown}
           onClick={handleSaveOrShare}
         >
           Save or share
         </button>
         <p className={styles.helperMessage} aria-live="polite">
-          {exportReady
-            ? 'Choose Save Image to keep it, or pick an app to share it.'
-            : 'Preparing photo…'}
+          {showPreparing
+            ? 'Preparing photo…'
+            : 'Choose Save Image to keep it, or pick an app to share it.'}
         </p>
       </div>
       {confirmation ? <Toast message="All set!" /> : null}

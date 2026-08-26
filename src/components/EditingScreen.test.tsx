@@ -261,6 +261,44 @@ describe('EditingScreen', () => {
     expect(screen.getByText('Preparing photo…')).toBeInTheDocument();
   });
 
+  it('does not flash the preparing look when export becomes ready again quickly (e.g. switching overlays)', () => {
+    vi.useFakeTimers();
+    const { rerender } = renderWithMeasuredContainer(makeProps({ exportReady: true }));
+
+    rerender(<EditingScreen {...makeProps({ exportReady: false })} />);
+    // Resolves well within PREPARING_INDICATOR_DELAY_MS, as a fast overlay
+    // re-export does — the button/helper text should never have flashed.
+    act(() => {
+      vi.advanceTimersByTime(50);
+    });
+    rerender(<EditingScreen {...makeProps({ exportReady: true })} />);
+
+    expect(screen.getByRole('button', { name: 'Save or share' })).not.toBeDisabled();
+    expect(screen.queryByText('Preparing photo…')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(screen.getByRole('button', { name: 'Save or share' })).not.toBeDisabled();
+
+    vi.useRealTimers();
+  });
+
+  it('does show the preparing look once export stays unready past the grace delay', () => {
+    vi.useFakeTimers();
+    const { rerender } = renderWithMeasuredContainer(makeProps({ exportReady: true }));
+
+    rerender(<EditingScreen {...makeProps({ exportReady: false })} />);
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(screen.getByRole('button', { name: 'Save or share' })).toBeDisabled();
+    expect(screen.getByText('Preparing photo…')).toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+
   it('calls onSaveOrShare once per click and debounces rapid double-taps', () => {
     vi.useFakeTimers();
     const onSaveOrShare = vi.fn();
