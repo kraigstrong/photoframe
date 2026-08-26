@@ -17,8 +17,8 @@ import type { ExportedImage, Transform, WorkingImage } from '../lib/image/types.
 export type LandingScreenProps = {
   eventName: string;
   privacyMessage: string;
-  /** Same-origin overlay asset URL, shown decoratively in a preview frame. */
-  overlaySrc: string;
+  /** Same-origin sample-photo URL, shown decoratively in a preview frame. */
+  previewPhoto: string;
   /** Passed straight through to the camera file input's `capture` attribute. */
   cameraFacing: 'user' | 'environment';
   /** Both file inputs stay disabled until the overlay has decoded. */
@@ -36,7 +36,7 @@ export type EditingScreenProps = {
   /** The frame designs the guest can pick between. Rendered above the photo,
    * decorative; the picker UI (tap to choose) only appears when there's more
    * than one. */
-  overlays: { id: string; label: string; src: string }[];
+  overlays: { id: string; label: string; src: string; thumbnail: string }[];
   selectedOverlayIndex: number;
   onSelectOverlay: (index: number) => void;
   outputWidth: number;

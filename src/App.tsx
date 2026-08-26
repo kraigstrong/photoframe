@@ -39,7 +39,7 @@ export default function App() {
         <LandingScreen
           eventName={flow.eventName}
           privacyMessage={flow.privacyMessage}
-          overlaySrc={flow.overlaySrc}
+          previewPhoto={flow.previewPhoto}
           cameraFacing={flow.cameraFacing}
           overlayReady={flow.overlayReady}
           onSelectFile={flow.selectFile}

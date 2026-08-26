@@ -32,6 +32,7 @@ const overlaysForPicker = eventConfig.overlays.map((overlay) => ({
   id: overlay.id,
   label: overlay.label,
   src: overlay.asset,
+  thumbnail: overlay.thumbnail,
 }));
 
 /**
@@ -142,11 +143,10 @@ function reducer(state: AppState, action: Action): AppState {
 export type UseGuestFlowResult = {
   state: AppState;
   overlayReady: boolean;
-  /** Decorative single overlay for LandingScreen's preview frame — always the
-   * first configured design, independent of the editing-screen picker. */
-  overlaySrc: string;
+  /** Decorative sample photo for LandingScreen's preview frame. */
+  previewPhoto: string;
   /** Every configured frame design, for the editing-screen picker. */
-  overlays: { id: string; label: string; src: string }[];
+  overlays: { id: string; label: string; src: string; thumbnail: string }[];
   selectedOverlayIndex: number;
   selectOverlay: (index: number) => void;
   eventName: string;
@@ -603,7 +603,7 @@ export function useGuestFlow(): UseGuestFlowResult {
   return {
     state,
     overlayReady,
-    overlaySrc: overlaysForPicker[0]!.src,
+    previewPhoto: eventConfig.previewPhoto,
     overlays: overlaysForPicker,
     selectedOverlayIndex,
     selectOverlay,

@@ -8,7 +8,7 @@ function makeProps(overrides: Partial<LandingScreenProps> = {}): LandingScreenPr
   return {
     eventName: 'Ada & Sam’s Wedding',
     privacyMessage: 'Photos never leave your device.',
-    overlaySrc: '/overlay.png',
+    previewPhoto: '/preview.jpg',
     cameraFacing: 'environment',
     overlayReady: true,
     onSelectFile: vi.fn(),

@@ -21,8 +21,8 @@ function baseFlow(overrides: Partial<UseGuestFlowResult>): UseGuestFlowResult {
   return {
     state: { status: 'idle' },
     overlayReady: true,
-    overlaySrc: '/overlay.png',
-    overlays: [{ id: 'default', label: 'Design 1', src: '/overlay.png' }],
+    previewPhoto: '/preview.jpg',
+    overlays: [{ id: 'default', label: 'Design 1', src: '/overlay.png', thumbnail: '/overlay-thumb.png' }],
     selectedOverlayIndex: 0,
     selectOverlay: vi.fn(),
     eventName: eventConfig.eventName,
