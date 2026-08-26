@@ -1,8 +1,5 @@
 import type { EventConfig } from './types.ts';
 import overlayAsset from '../assets/overlay-panther-prowl-2026.png';
-// Placeholder recolors of the real design above, scaffolding the multi-overlay
-// picker until additional real designs are ready. Swap these out the same
-// way as the primary overlay — see the README's "Replacing the overlay".
 import overlayAssetAlt from '../assets/overlay-panther-prowl-2026-alt.png';
 import overlayAssetAlt2 from '../assets/overlay-panther-prowl-2026-alt-2.png';
 
