@@ -2,6 +2,8 @@ import type { EventConfig } from './types.ts';
 import overlayAsset from '../assets/overlay-panther-prowl-2026.png';
 import overlayAssetAlt from '../assets/overlay-panther-prowl-2026-alt.png';
 import overlayAssetAlt2 from '../assets/overlay-panther-prowl-2026-alt-2.png';
+import overlayAssetAlt3 from '../assets/overlay-panther-prowl-2026-alt-3.png';
+import overlayAssetAlt4 from '../assets/overlay-panther-prowl-2026-alt-4.png';
 
 /**
  * The single configured event for this deployment.
@@ -18,6 +20,8 @@ export const eventConfig: EventConfig = {
     { id: 'panther-prowl-2026', label: 'Design 1', asset: overlayAsset },
     { id: 'panther-prowl-2026-alt', label: 'Design 2', asset: overlayAssetAlt },
     { id: 'panther-prowl-2026-alt-2', label: 'Design 3', asset: overlayAssetAlt2 },
+    { id: 'panther-prowl-2026-alt-3', label: 'Design 4', asset: overlayAssetAlt3 },
+    { id: 'panther-prowl-2026-alt-4', label: 'Design 5', asset: overlayAssetAlt4 },
   ],
   outputWidth: 1080,
   outputHeight: 1350,

@@ -65,7 +65,7 @@ test('tapping an overlay-picker option swaps the on-screen frame design', async 
 
   const picker = page.getByRole('radiogroup', { name: 'Choose a frame design' });
   const options = picker.getByRole('radio');
-  await expect(options).toHaveCount(3);
+  await expect(options).toHaveCount(5);
   await expect(options.nth(0)).toHaveAttribute('aria-checked', 'true');
 
   await options.nth(1).click();
