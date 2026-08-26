@@ -33,7 +33,9 @@ function makeProps(overrides: Partial<EditingScreenProps> = {}): EditingScreenPr
   return {
     eventName: 'Ada & Sam’s Wedding',
     image: IMAGE,
-    overlays: [{ id: 'default', label: 'Design 1', src: '/overlay.png' }],
+    overlays: [
+      { id: 'default', label: 'Design 1', src: '/overlay.png', thumbnail: '/overlay-thumb.png' },
+    ],
     selectedOverlayIndex: 0,
     onSelectOverlay: vi.fn(),
     outputWidth: OUTPUT_WIDTH,
@@ -234,9 +236,9 @@ describe('EditingScreen', () => {
     renderWithMeasuredContainer(
       makeProps({
         overlays: [
-          { id: 'a', label: 'Design 1', src: '/overlay-a.png' },
-          { id: 'b', label: 'Design 2', src: '/overlay-b.png' },
-          { id: 'c', label: 'Design 3', src: '/overlay-c.png' },
+          { id: 'a', label: 'Design 1', src: '/overlay-a.png', thumbnail: '/overlay-a-thumb.png' },
+          { id: 'b', label: 'Design 2', src: '/overlay-b.png', thumbnail: '/overlay-b-thumb.png' },
+          { id: 'c', label: 'Design 3', src: '/overlay-c.png', thumbnail: '/overlay-c-thumb.png' },
         ],
         selectedOverlayIndex: 1,
         onSelectOverlay,

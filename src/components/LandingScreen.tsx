@@ -11,7 +11,7 @@ import styles from './LandingScreen.module.css';
 export default function LandingScreen({
   eventName,
   privacyMessage,
-  overlaySrc,
+  previewPhoto,
   cameraFacing,
   overlayReady,
   onSelectFile,
@@ -35,7 +35,7 @@ export default function LandingScreen({
       <h1 className={styles.headline}>Frame your photo</h1>
 
       <div className={styles.preview} aria-hidden="true">
-        <img src={overlaySrc} alt="" className={styles.previewOverlay} />
+        <img src={previewPhoto} alt="" className={styles.previewPhoto} />
       </div>
 
       <div className={styles.actions}>

@@ -401,7 +401,7 @@ export default function EditingScreen({
               data-selected={index === selectedOverlayIndex || undefined}
               onClick={() => onSelectOverlay(index)}
             >
-              <img src={overlay.src} alt="" aria-hidden="true" />
+              <img src={overlay.thumbnail} alt="" aria-hidden="true" />
             </button>
           ))}
         </div>

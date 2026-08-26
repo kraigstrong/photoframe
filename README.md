@@ -53,13 +53,21 @@ event frames:
    hide the photo entirely.
 3. Keep logos, text, and sponsor marks inside a safe area roughly 5% in from each edge so nothing
    is lost if the frame is printed or cropped downstream.
-4. Save each file into `src/assets/` and list it as an entry (`{ id, label, asset }`) in
-   `eventConfig.overlays`. `label` is the accessible name shown for that option in the
+4. Export a matching **square thumbnail** for each design (used on the editing-screen picker
+   button instead of the full-size overlay, which is mostly transparent and unrecognizable at tap
+   size) — a few hundred pixels per side is plenty.
+5. Save each file into `src/assets/` and list it as an entry (`{ id, label, asset, thumbnail }`)
+   in `eventConfig.overlays`. `label` is the accessible name shown for that option in the
    editing-screen picker (e.g. `"Design 1"`). Importing through `src/assets/` (rather than
    `public/`) is required: Vite gives each file a hashed filename, so a replaced overlay is never
    served from a stale cache.
-5. Run `npm run build` and confirm every overlay is present in `dist/assets/` and that the total
+6. Run `npm run build` and confirm every overlay is present in `dist/assets/` and that the total
    transfer stays within the ~2 MB budget.
+
+`eventConfig.previewPhoto` is a separate, decorative sample photo (a real photo, not a transparent
+overlay) shown in the landing-screen preview frame — same import-through-`src/assets/` rule
+applies. Keep it compressed (a JPEG well under 500 KB is plenty); it's only ever displayed a few
+hundred pixels wide.
 
 All configured overlays are loaded and decoded before editing is enabled (every overlay must
 decode successfully, same as the single-overlay case before), each always renders at full output

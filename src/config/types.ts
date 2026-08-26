@@ -20,6 +20,8 @@ export type EventOverlay = {
   label: string;
   /** Same-origin URL of the transparent overlay PNG. */
   asset: string;
+  /** Same-origin URL of the picker-button thumbnail image. */
+  thumbnail: string;
 };
 
 export type EventConfig = {
@@ -33,6 +35,9 @@ export type EventConfig = {
    * Always at least one; the picker UI only appears when there's more than
    * one. */
   overlays: EventOverlay[];
+  /** Same-origin URL of the decorative sample photo shown in the
+   * landing-screen preview frame. */
+  previewPhoto: string;
   /** Exported image width in pixels. */
   outputWidth: number;
   /** Exported image height in pixels. */

@@ -4,6 +4,12 @@ import overlayAssetAlt from '../assets/overlay-panther-prowl-2026-alt.png';
 import overlayAssetAlt2 from '../assets/overlay-panther-prowl-2026-alt-2.png';
 import overlayAssetAlt3 from '../assets/overlay-panther-prowl-2026-alt-3.png';
 import overlayAssetAlt4 from '../assets/overlay-panther-prowl-2026-alt-4.png';
+import overlayThumb from '../assets/overlay-panther-prowl-2026-thumb.png';
+import overlayThumbAlt from '../assets/overlay-panther-prowl-2026-alt-thumb.png';
+import overlayThumbAlt2 from '../assets/overlay-panther-prowl-2026-alt-2-thumb.png';
+import overlayThumbAlt3 from '../assets/overlay-panther-prowl-2026-alt-3-thumb.png';
+import overlayThumbAlt4 from '../assets/overlay-panther-prowl-2026-alt-4-thumb.png';
+import previewPhoto from '../assets/landing-preview-photo.jpg';
 
 /**
  * The single configured event for this deployment.
@@ -16,12 +22,33 @@ export const eventConfig: EventConfig = {
   pageTitle: 'Panther Prowl 2026 — Photo Frame',
   privacyMessage: 'Your photo stays on your phone. It is not uploaded.',
   overlays: [
-    { id: 'panther-prowl-2026', label: 'Design 1', asset: overlayAsset },
-    { id: 'panther-prowl-2026-alt', label: 'Design 2', asset: overlayAssetAlt },
-    { id: 'panther-prowl-2026-alt-2', label: 'Design 3', asset: overlayAssetAlt2 },
-    { id: 'panther-prowl-2026-alt-3', label: 'Design 4', asset: overlayAssetAlt3 },
-    { id: 'panther-prowl-2026-alt-4', label: 'Design 5', asset: overlayAssetAlt4 },
+    { id: 'panther-prowl-2026', label: 'Design 1', asset: overlayAsset, thumbnail: overlayThumb },
+    {
+      id: 'panther-prowl-2026-alt',
+      label: 'Design 2',
+      asset: overlayAssetAlt,
+      thumbnail: overlayThumbAlt,
+    },
+    {
+      id: 'panther-prowl-2026-alt-2',
+      label: 'Design 3',
+      asset: overlayAssetAlt2,
+      thumbnail: overlayThumbAlt2,
+    },
+    {
+      id: 'panther-prowl-2026-alt-3',
+      label: 'Design 4',
+      asset: overlayAssetAlt3,
+      thumbnail: overlayThumbAlt3,
+    },
+    {
+      id: 'panther-prowl-2026-alt-4',
+      label: 'Design 5',
+      asset: overlayAssetAlt4,
+      thumbnail: overlayThumbAlt4,
+    },
   ],
+  previewPhoto,
   outputWidth: 1080,
   outputHeight: 1350,
   jpegQuality: 0.92,

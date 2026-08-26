@@ -21,9 +21,14 @@ describe('eventConfig', () => {
     expect(eventConfig.overlays.length).toBeGreaterThan(1);
   });
 
-  it('references only same-origin overlay assets', () => {
+  it('references only same-origin overlay assets and thumbnails', () => {
     for (const overlay of eventConfig.overlays) {
       expect(overlay.asset).not.toMatch(/^https?:\/\//);
+      expect(overlay.thumbnail).not.toMatch(/^https?:\/\//);
     }
+  });
+
+  it('references a same-origin preview photo', () => {
+    expect(eventConfig.previewPhoto).not.toMatch(/^https?:\/\//);
   });
 });
