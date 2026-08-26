@@ -7,7 +7,6 @@ import type { LandingScreenProps } from './types.ts';
 function makeProps(overrides: Partial<LandingScreenProps> = {}): LandingScreenProps {
   return {
     eventName: 'Ada & Sam’s Wedding',
-    instruction: 'Take or choose a photo to frame.',
     privacyMessage: 'Photos never leave your device.',
     overlaySrc: '/overlay.png',
     cameraFacing: 'environment',
@@ -18,11 +17,10 @@ function makeProps(overrides: Partial<LandingScreenProps> = {}): LandingScreenPr
 }
 
 describe('LandingScreen', () => {
-  it('renders event name, instruction, and privacy message', () => {
+  it('renders event name and privacy message', () => {
     render(<LandingScreen {...makeProps()} />);
     expect(screen.getByRole('heading')).toBeInTheDocument();
     expect(screen.getByText('Ada & Sam’s Wedding')).toBeInTheDocument();
-    expect(screen.getByText('Take or choose a photo to frame.')).toBeInTheDocument();
     expect(screen.getByText('Photos never leave your device.')).toBeInTheDocument();
   });
 

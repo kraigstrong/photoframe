@@ -32,8 +32,8 @@ npm run dev
 
 All event-specific values live in [`src/config/event.ts`](src/config/event.ts), typed by
 [`src/config/types.ts`](src/config/types.ts). Edit that one file to change the event name, page
-title, instruction and privacy copy, output dimensions, JPEG quality, filename prefix, camera
-facing hint, and theme colors. Do not duplicate these values in components.
+title, privacy copy, output dimensions, JPEG quality, filename prefix, camera facing hint, and
+theme colors. Do not duplicate these values in components.
 
 One deployment serves exactly one configured event.
 

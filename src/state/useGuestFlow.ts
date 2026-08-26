@@ -150,7 +150,6 @@ export type UseGuestFlowResult = {
   selectedOverlayIndex: number;
   selectOverlay: (index: number) => void;
   eventName: string;
-  instruction: string;
   privacyMessage: string;
   cameraFacing: 'user' | 'environment';
   confirmation: ShareConfirmation;
@@ -609,7 +608,6 @@ export function useGuestFlow(): UseGuestFlowResult {
     selectedOverlayIndex,
     selectOverlay,
     eventName: eventConfig.eventName,
-    instruction: eventConfig.instruction,
     privacyMessage: eventConfig.privacyMessage,
     cameraFacing: eventConfig.cameraFacing,
     confirmation,

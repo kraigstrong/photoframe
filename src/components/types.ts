@@ -16,7 +16,6 @@ import type { ExportedImage, Transform, WorkingImage } from '../lib/image/types.
 
 export type LandingScreenProps = {
   eventName: string;
-  instruction: string;
   privacyMessage: string;
   /** Same-origin overlay asset URL, shown decoratively in a preview frame. */
   overlaySrc: string;
