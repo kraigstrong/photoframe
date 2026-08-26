@@ -2,17 +2,10 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  type ChangeEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
-import {
-  applyZoom,
-  clamp,
-  coverScale,
-  MAX_RELATIVE_ZOOM,
-  MIN_RELATIVE_ZOOM,
-} from '../lib/image/index.ts';
+import { applyZoom, clamp, coverScale } from '../lib/image/index.ts';
 import type { Transform } from '../lib/image/types.ts';
 import Toast from './Toast.tsx';
 import type { EditingScreenProps } from './types.ts';
@@ -286,11 +279,6 @@ export default function EditingScreen({
     commitTransform(applyFrameDelta(transform, deltaFrameX, deltaFrameY));
   }
 
-  function handleZoomChange(event: ChangeEvent<HTMLInputElement>): void {
-    const nextScale = Number(event.target.value);
-    commitTransform(applyZoom(transform, nextScale, image, outputWidth, outputHeight));
-  }
-
   function handleSaveOrShare(): void {
     if (!exportReady || isShareCoolingDown) {
       return;
@@ -340,23 +328,6 @@ export default function EditingScreen({
       </div>
 
       <p className={styles.hint}>Drag to reposition, pinch to zoom</p>
-
-      <div className={styles.zoomRow}>
-        <label htmlFor="editing-zoom-slider" className={styles.zoomLabel}>
-          Zoom
-        </label>
-        <input
-          id="editing-zoom-slider"
-          className={styles.zoomSlider}
-          type="range"
-          min={MIN_RELATIVE_ZOOM}
-          max={MAX_RELATIVE_ZOOM}
-          step={0.01}
-          value={transform.scale}
-          aria-valuetext={`Zoom ${transform.scale.toFixed(2)}x`}
-          onChange={handleZoomChange}
-        />
-      </div>
 
       <div className={styles.actions}>
         <button type="button" className={styles.secondaryButton} onClick={onResetPosition}>

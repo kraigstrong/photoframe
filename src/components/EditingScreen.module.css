@@ -72,48 +72,6 @@
   color: var(--muted-text);
 }
 
-.zoomRow {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  align-items: center;
-  width: min(92vw, 360px);
-}
-
-.zoomLabel {
-  font-size: 0.875rem;
-  color: var(--muted-text);
-}
-
-.zoomRow input[type='range'] {
-  width: 100%;
-}
-
-.zoomSlider {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 28px;
-  background: transparent;
-  accent-color: var(--accent);
-}
-
-.zoomSlider::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 2px;
-  background: #dde3dc;
-}
-
-.zoomSlider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 26px;
-  height: 26px;
-  margin-top: -11px;
-  border-radius: 50%;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
-}
-
 .actions {
   display: flex;
   gap: var(--space-3);

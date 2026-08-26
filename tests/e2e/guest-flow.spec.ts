@@ -44,9 +44,7 @@ test('guest can select a photo, see it composited under the overlay, and reach r
   await expect(shareButton).toBeEnabled({ timeout: 5000 });
 });
 
-test('zoom slider and arrow-key nudge both move the photo without exposing an empty edge', async ({
-  page,
-}) => {
+test('arrow-key nudge moves the photo without exposing an empty edge', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Choose from camera roll' })).toBeEnabled({
     timeout: 5000,
@@ -57,14 +55,6 @@ test('zoom slider and arrow-key nudge both move the photo without exposing an em
     .setInputFiles(path.join(FIXTURES_DIR, 'landscape.jpg'));
 
   const photo = page.locator('img').first();
-  const widthBeforeZoom = await photo.evaluate((el) => (el as HTMLElement).style.width);
-
-  const slider = page.getByRole('slider', { name: 'Zoom' });
-  await slider.focus();
-  await slider.press('ArrowRight'); // native range step, increases zoom
-  const widthAfterZoom = await photo.evaluate((el) => (el as HTMLElement).style.width);
-  expect(widthAfterZoom).not.toBe(widthBeforeZoom);
-
   const transformBeforeNudge = await photo.evaluate((el) => (el as HTMLElement).style.transform);
   const dragRegion = page.getByRole('group', {
     name: 'Drag to reposition the photo. Use arrow keys to move it.',
