@@ -37,12 +37,15 @@ facing hint, and theme colors. Do not duplicate these values in components.
 
 One deployment serves exactly one configured event.
 
-## Replacing the overlay
+## Replacing the overlay(s)
 
 `src/assets/overlay-placeholder.png` is a **clearly labeled development placeholder**. It is not
-production artwork. To use the real event frame:
+production artwork. `eventConfig.overlays` in `src/config/event.ts` is a list of one or more frame
+designs — the guest can only choose between them on the editing screen when the list has more than
+one entry; with a single entry, editing looks exactly as it did before this feature. To use real
+event frames:
 
-1. Export the overlay as a **PNG with a real alpha channel** at exactly **1080 × 1350** — it must
+1. Export each overlay as a **PNG with a real alpha channel** at exactly **1080 × 1350** — it must
    match `outputWidth` × `outputHeight` in `src/config/event.ts`. If you change the output size,
    change both together.
 2. Make every area that should reveal the guest's photo **fully transparent**. Semi-transparent
@@ -50,14 +53,17 @@ production artwork. To use the real event frame:
    hide the photo entirely.
 3. Keep logos, text, and sponsor marks inside a safe area roughly 5% in from each edge so nothing
    is lost if the frame is printed or cropped downstream.
-4. Save it into `src/assets/` and point `overlayAsset` in `src/config/event.ts` at the new file.
-   Importing it through `src/assets/` (rather than `public/`) is required: Vite gives it a hashed
-   filename, so a replaced overlay is never served from a stale cache.
-5. Run `npm run build` and confirm the overlay is present in `dist/assets/` and that the total
+4. Save each file into `src/assets/` and list it as an entry (`{ id, label, asset }`) in
+   `eventConfig.overlays`. `label` is the accessible name shown for that option in the
+   editing-screen picker (e.g. `"Design 1"`). Importing through `src/assets/` (rather than
+   `public/`) is required: Vite gives each file a hashed filename, so a replaced overlay is never
+   served from a stale cache.
+5. Run `npm run build` and confirm every overlay is present in `dist/assets/` and that the total
    transfer stays within the ~2 MB budget.
 
-The overlay is loaded and decoded before editing is enabled, always renders at full output bounds,
-and never pans or zooms with the photo.
+All configured overlays are loaded and decoded before editing is enabled (every overlay must
+decode successfully, same as the single-overlay case before), each always renders at full output
+bounds, and none ever pans or zooms with the photo.
 
 ## QR code
 
@@ -134,6 +140,8 @@ optional, and not something CI or Playwright can substitute for:
 - [ ] Preview orientation is correct for every case above.
 - [ ] Drag and zoom the photo; no empty edge ever appears.
 - [ ] Exported image has the correct overlay alignment and resolution.
+- [ ] If more than one overlay is configured, tapping each picker option updates both the live
+      preview and the exported image; the editing screen still fits without scrolling.
 - [ ] Native share sheet opens with the image attached; save to Photos/Gallery succeeds.
 - [ ] Cancel the share sheet, then retry successfully.
 - [ ] Tap "Save or share" twice in quick succession; confirm only one share sheet appears (this

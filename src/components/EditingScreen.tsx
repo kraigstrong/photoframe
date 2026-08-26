@@ -60,7 +60,9 @@ function distanceBetween(a: PointerPoint, b: PointerPoint): number {
 export default function EditingScreen({
   eventName,
   image,
-  overlaySrc,
+  overlays,
+  selectedOverlayIndex,
+  onSelectOverlay,
   outputWidth,
   outputHeight,
   transform,
@@ -297,7 +299,9 @@ export default function EditingScreen({
           Back
         </button>
         <span className={styles.headerLabel}>{eventName}</span>
-        <span aria-hidden="true" />
+        <button type="button" className={styles.resetButton} onClick={onResetPosition}>
+          Reset
+        </button>
       </div>
 
       <div
@@ -324,19 +328,34 @@ export default function EditingScreen({
             transform: `translate(${cssX}px, ${cssY}px)`,
           }}
         />
-        <img src={overlaySrc} alt="" aria-hidden="true" className={styles.overlay} />
+        <img
+          src={overlays[selectedOverlayIndex]!.src}
+          alt=""
+          aria-hidden="true"
+          className={styles.overlay}
+        />
       </div>
 
       <p className={styles.hint}>Drag to reposition, pinch to zoom</p>
 
-      <div className={styles.actions}>
-        <button type="button" className={styles.secondaryButton} onClick={onResetPosition}>
-          Reset position
-        </button>
-        <button type="button" className={styles.secondaryButton} onClick={onChangePhoto}>
-          Change photo
-        </button>
-      </div>
+      {overlays.length > 1 ? (
+        <div className={styles.overlayPicker} role="radiogroup" aria-label="Choose a frame design">
+          {overlays.map((overlay, index) => (
+            <button
+              key={overlay.id}
+              type="button"
+              role="radio"
+              aria-checked={index === selectedOverlayIndex}
+              aria-label={overlay.label}
+              className={styles.overlayOption}
+              data-selected={index === selectedOverlayIndex || undefined}
+              onClick={() => onSelectOverlay(index)}
+            >
+              <img src={overlay.src} alt="" aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div className={styles.shareRow}>
         <button

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import EditingScreen from './EditingScreen.tsx';
@@ -33,7 +33,9 @@ function makeProps(overrides: Partial<EditingScreenProps> = {}): EditingScreenPr
   return {
     eventName: 'Ada & Sam’s Wedding',
     image: IMAGE,
-    overlaySrc: '/overlay.png',
+    overlays: [{ id: 'default', label: 'Design 1', src: '/overlay.png' }],
+    selectedOverlayIndex: 0,
+    onSelectOverlay: vi.fn(),
     outputWidth: OUTPUT_WIDTH,
     outputHeight: OUTPUT_HEIGHT,
     transform: { x: -200, y: -300, scale: 1.5 },
@@ -206,17 +208,51 @@ describe('EditingScreen', () => {
     expect(onTransformChange).toHaveBeenLastCalledWith({ x: -200, y: -320, scale: 1.5 });
   });
 
-  it('calls onResetPosition and onChangePhoto from their buttons', async () => {
+  it('calls onResetPosition and onChangePhoto from the header buttons', async () => {
     const user = userEvent.setup();
     const onResetPosition = vi.fn();
     const onChangePhoto = vi.fn();
     renderWithMeasuredContainer(makeProps({ onResetPosition, onChangePhoto }));
 
-    await user.click(screen.getByRole('button', { name: 'Reset position' }));
+    await user.click(screen.getByRole('button', { name: 'Reset' }));
     expect(onResetPosition).toHaveBeenCalledTimes(1);
 
-    await user.click(screen.getByRole('button', { name: 'Change photo' }));
+    await user.click(screen.getByRole('button', { name: 'Back' }));
     expect(onChangePhoto).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not render an overlay picker when only one design is configured', () => {
+    renderWithMeasuredContainer(makeProps());
+    expect(
+      screen.queryByRole('radiogroup', { name: 'Choose a frame design' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders one picker option per overlay, reflects the selected one, and reports taps', async () => {
+    const user = userEvent.setup();
+    const onSelectOverlay = vi.fn();
+    renderWithMeasuredContainer(
+      makeProps({
+        overlays: [
+          { id: 'a', label: 'Design 1', src: '/overlay-a.png' },
+          { id: 'b', label: 'Design 2', src: '/overlay-b.png' },
+          { id: 'c', label: 'Design 3', src: '/overlay-c.png' },
+        ],
+        selectedOverlayIndex: 1,
+        onSelectOverlay,
+      }),
+    );
+
+    const picker = screen.getByRole('radiogroup', { name: 'Choose a frame design' });
+    const options = within(picker).getAllByRole('radio');
+    expect(options).toHaveLength(3);
+    expect(options[0]).toHaveAttribute('aria-checked', 'false');
+    expect(options[1]).toHaveAttribute('aria-checked', 'true');
+    expect(options[2]).toHaveAttribute('aria-checked', 'false');
+
+    await user.click(options[2]!);
+    expect(onSelectOverlay).toHaveBeenCalledTimes(1);
+    expect(onSelectOverlay).toHaveBeenCalledWith(2);
   });
 
   it('disables Save/Share and shows a preparing message while export is not ready', () => {

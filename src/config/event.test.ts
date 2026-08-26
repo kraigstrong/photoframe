@@ -17,7 +17,13 @@ describe('eventConfig', () => {
     expect(eventConfig.privacyMessage.toLowerCase()).toContain('not upload');
   });
 
-  it('references a same-origin overlay asset', () => {
-    expect(eventConfig.overlayAsset).not.toMatch(/^https?:\/\//);
+  it('offers more than one overlay design for the editing-screen picker', () => {
+    expect(eventConfig.overlays.length).toBeGreaterThan(1);
+  });
+
+  it('references only same-origin overlay assets', () => {
+    for (const overlay of eventConfig.overlays) {
+      expect(overlay.asset).not.toMatch(/^https?:\/\//);
+    }
   });
 });
