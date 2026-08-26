@@ -33,7 +33,9 @@ function makeProps(overrides: Partial<EditingScreenProps> = {}): EditingScreenPr
   return {
     eventName: 'Ada & Sam’s Wedding',
     image: IMAGE,
-    overlays: [{ id: 'default', label: 'Design 1', src: '/overlay.png', thumbnail: '/overlay-thumb.png' }],
+    overlays: [
+      { id: 'default', label: 'Design 1', src: '/overlay.png', thumbnail: '/overlay-thumb.png' },
+    ],
     selectedOverlayIndex: 0,
     onSelectOverlay: vi.fn(),
     outputWidth: OUTPUT_WIDTH,
