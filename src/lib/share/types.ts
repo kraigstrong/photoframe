@@ -22,8 +22,15 @@ export type ShareOutcome =
   | { result: 'unavailable'; reason: string }
   /** Sharing was attempted (the browser claims to support it) but
    *  `navigator.share()` itself threw for a reason other than the guest
-   *  cancelling; the caller should move to the fallback save path. */
-  | { result: 'failed'; reason: string };
+   *  cancelling; the caller should move to the fallback save path.
+   *
+   *  `reason` is browser-authored free text (an `Error#message`) meant for
+   *  human debugging only and must NEVER be transmitted anywhere off the
+   *  device. `errorName` is the telemetry-safe counterpart: a
+   *  `DOMException`/`Error` `.name`, drawn from a small, enumerable set
+   *  (e.g. `"NotAllowedError"`, `"Error"`) — use that field for anything
+   *  that leaves the device. */
+  | { result: 'failed'; reason: string; errorName: string };
 
 export interface ShareService {
   /** Feature-detects file sharing. Must not throw on any target browser. */

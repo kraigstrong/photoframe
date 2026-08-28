@@ -64,7 +64,13 @@ async function share(exported: ExportedImage): Promise<ShareOutcome> {
       // The guest dismissed the OS share sheet — a normal outcome.
       return { result: 'cancelled' };
     }
-    return { result: 'failed', reason: err instanceof Error ? err.message : String(err) };
+    return {
+      result: 'failed',
+      reason: err instanceof Error ? err.message : String(err),
+      // `.name` is a small, closed set (DOMException/Error names) safe to
+      // transmit via telemetry; `.message` above is free text and is not.
+      errorName: err instanceof DOMException ? err.name : err instanceof Error ? err.name : 'Error',
+    };
   }
 }
 

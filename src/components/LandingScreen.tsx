@@ -15,6 +15,7 @@ export default function LandingScreen({
   cameraFacing,
   overlayReady,
   onSelectFile,
+  onSourceClick,
 }: LandingScreenProps) {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const libraryInputRef = useRef<HTMLInputElement>(null);
@@ -43,7 +44,10 @@ export default function LandingScreen({
           type="button"
           className={styles.primaryButton}
           disabled={!overlayReady}
-          onClick={() => cameraInputRef.current?.click()}
+          onClick={() => {
+            onSourceClick('camera');
+            cameraInputRef.current?.click();
+          }}
         >
           <span className={styles.cameraIcon} aria-hidden="true">
             <span className={styles.cameraIconLens} />
@@ -66,7 +70,10 @@ export default function LandingScreen({
           type="button"
           className={styles.secondaryButton}
           disabled={!overlayReady}
-          onClick={() => libraryInputRef.current?.click()}
+          onClick={() => {
+            onSourceClick('library');
+            libraryInputRef.current?.click();
+          }}
         >
           Choose from camera roll
         </button>
