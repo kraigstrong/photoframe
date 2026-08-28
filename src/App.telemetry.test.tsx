@@ -12,23 +12,29 @@ import type { ExportedImage, Transform, WorkingImage } from './lib/image/types.t
  * Drives a complete, realistic guest session through the REAL component
  * tree and the REAL useGuestFlow hook — landing, a source click, a file
  * selection, a frame change, and a share/download attempt — with telemetry
- * "enabled" (a stubbed `VITE_TELEMETRY_URL`) and `navigator.sendBeacon`
- * captured instead of the real image engine and share sheet.
+ * "enabled" (a stubbed `VITE_POSTHOG_KEY`) and the `posthog-js` module's
+ * `capture()` captured instead of the real image engine and share sheet.
  *
  * This is the regression net for the whole telemetry privacy guarantee: it
- * asserts, over every payload actually sent, that (1) only allowlisted keys
- * ever appear and (2) nothing photo-derived (filename, dimensions, a
- * `data:`/`blob:` URL) ever appears in the serialized text — not just that
- * `track()`'s own allowlist logic is correct in isolation (see track.test.ts
- * for that), but that no real call site smuggles something past it.
+ * asserts, over every event actually captured, that (1) only allowlisted
+ * keys ever appear and (2) nothing photo-derived (filename, dimensions, a
+ * `data:`/`blob:` URL) ever appears in the serialized properties — not just
+ * that `track()`'s own allowlist logic is correct in isolation (see
+ * track.test.ts for that), but that no real call site smuggles something
+ * past it. `posthog.ts`'s own lockdown config (property_denylist,
+ * before_send/sanitizeProperties) is a second, independent layer covered by
+ * posthog.test.ts — this test intentionally bypasses it (by mocking
+ * `posthog-js` itself) so it's purely testing this app's own call sites and
+ * `track.ts`'s allowlist, not PostHog's.
  *
- * Only `imageEngine` (decode/export) and the overlay preload's `Image`
- * constructor are faked, mirroring the same necessity documented in
- * state/useGuestFlow.test.ts: jsdom has no `createImageBitmap` and its real
- * `<img>` never fires load/error (see tests/fixtures/FIXTURES.md), so real
- * decoding can only be exercised in Playwright. Everything else — routing
- * on AppState, LandingScreen/EditingScreen/FallbackScreen, the hook's own
- * orchestration and telemetry call sites — is real.
+ * Only `imageEngine` (decode/export), the overlay preload's `Image`
+ * constructor, and `posthog-js` are faked, mirroring the same necessity
+ * documented in state/useGuestFlow.test.ts: jsdom has no `createImageBitmap`
+ * and its real `<img>` never fires load/error (see
+ * tests/fixtures/FIXTURES.md), so real decoding can only be exercised in
+ * Playwright. Everything else — routing on AppState,
+ * LandingScreen/EditingScreen/FallbackScreen, the hook's own orchestration
+ * and telemetry call sites — is real.
  */
 vi.mock('./lib/image/index.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./lib/image/index.ts')>();
@@ -42,6 +48,15 @@ vi.mock('./lib/image/index.ts', async (importOriginal) => {
     },
   };
 });
+
+const posthogCaptureMock = vi.fn();
+vi.mock('posthog-js', () => ({
+  default: {
+    init: vi.fn(),
+    register: vi.fn(),
+    capture: posthogCaptureMock,
+  },
+}));
 
 const mockedEngine = vi.mocked(imageEngine);
 
@@ -102,7 +117,7 @@ function makeExportedImage(overrides: Partial<ExportedImage> = {}): ExportedImag
 }
 
 const BASELINE_TRANSFORM: Transform = { x: 0, y: 0, scale: 1 };
-const TELEMETRY_ENDPOINT = 'https://telemetry.test/e';
+const POSTHOG_KEY = 'phc_test_key';
 
 /** The complete, closed set of fields any telemetry payload may ever carry
  * (envelope fields plus every field any TelemetryEvent variant declares).
@@ -125,22 +140,21 @@ const ALLOWED_KEYS = new Set([
   'kind',
 ]);
 
-type Captured = { url: string; blob: Blob };
+type Captured = { name: string; properties: Record<string, unknown> };
 let captured: Captured[] = [];
-let beaconSpy: ReturnType<typeof vi.fn>;
 
+/** Async for parity with the previous Blob-based API — nothing here
+ * actually awaits anything now that captures are plain objects. */
 async function payloads(): Promise<Record<string, unknown>[]> {
-  return Promise.all(
-    captured.map(async (c) => JSON.parse(await c.blob.text()) as Record<string, unknown>),
-  );
+  return captured.map((c) => c.properties);
 }
 
 async function rawTexts(): Promise<string[]> {
-  return Promise.all(captured.map((c) => c.blob.text()));
+  return captured.map((c) => JSON.stringify(c.properties));
 }
 
 beforeEach(() => {
-  vi.stubEnv('VITE_TELEMETRY_URL', TELEMETRY_ENDPOINT);
+  vi.stubEnv('VITE_POSTHOG_KEY', POSTHOG_KEY);
 
   // Device/session ids are random UUIDs (see ids.ts) and therefore could, in
   // extremely rare cases, coincidentally contain a digit sequence this file
@@ -163,22 +177,14 @@ beforeEach(() => {
   mockedEngine.export.mockReset();
 
   captured = [];
-  beaconSpy = vi.fn((url: string, blob: Blob) => {
-    captured.push({ url, blob });
-    return true;
-  });
-  Object.defineProperty(navigator, 'sendBeacon', {
-    value: beaconSpy,
-    configurable: true,
-    writable: true,
+  posthogCaptureMock.mockReset();
+  posthogCaptureMock.mockImplementation((name: string, properties: Record<string, unknown>) => {
+    captured.push({ name, properties });
   });
 });
 
 afterEach(() => {
   globalThis.Image = originalImage;
-  // Not restoring navigator.sendBeacon to its original value: every test
-  // re-installs its own spy via Object.defineProperty in beforeEach, so
-  // there is nothing left over to leak between tests in this file.
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });

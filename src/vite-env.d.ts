@@ -1,8 +1,10 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  /** Same-origin telemetry endpoint. Unset in dev/test — telemetry is inert. */
-  readonly VITE_TELEMETRY_URL?: string;
+  /** PostHog project API key. Unset in dev/test — telemetry is inert. */
+  readonly VITE_POSTHOG_KEY?: string;
+  /** Same-origin PostHog reverse-proxy path (see vercel.json). Defaults to `/ingest`. */
+  readonly VITE_POSTHOG_HOST?: string;
 }
 
 interface ImportMeta {

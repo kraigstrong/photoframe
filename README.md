@@ -4,7 +4,10 @@ A mobile-first web app that lets an event guest scan a QR code, pick or take a p
 under a transparent event overlay, and share the finished image.
 
 **The photo never leaves the device.** All decoding, cropping, compositing, and encoding happen in
-the browser. There is no upload, no backend, no database, no account, and no analytics.
+the browser. There is no upload, no backend, no database, and no account. A small set of anonymous
+interaction events (e.g. "a photo was chosen," "the frame was changed," "the share sheet failed")
+goes to PostHog through a same-origin reverse proxy — see [Privacy invariants](#privacy-invariants)
+below for exactly what that is and isn't.
 
 ## Quick start
 
@@ -99,6 +102,28 @@ Static Vite output deployed to Vercel. No server runtime, no serverless function
 4. That URL — the stable production domain, not a preview-deployment URL — is the canonical URL.
    Generate the QR from it (see [QR code](#qr-code) above) only once it's final.
 
+### Telemetry configuration (required before the event)
+
+Telemetry is inert unless `VITE_POSTHOG_KEY` is set, so a deployment without it collects
+nothing. If you do set it, **all three of these are required**, not optional:
+
+- [ ] Set `VITE_POSTHOG_KEY` on **Production and Preview** (Preview too — the device-testing
+      pass runs against a preview URL). The PostHog project API key is publishable by design;
+      it is not a secret.
+- [ ] In PostHog project settings, enable **"Discard IP data"**. The app already forces
+      `$ip` to `0.0.0.0` on every event (see `sanitizeProperties` in
+      `src/lib/telemetry/posthog.ts`), which is what actually stops the guest's address being
+      recorded — the `/ingest` reverse proxy forwards `x-forwarded-for` and a Vercel rewrite
+      cannot strip a request header. This setting is the second, server-side layer in case
+      that client-side one is ever weakened.
+- [ ] In PostHog project settings, confirm **session replay is disabled**. The client sets
+      `disable_session_recording: true`, but replay would record a screen showing a guest's
+      photo, so it is worth confirming at the project level too.
+
+Verify after deploying: open the production URL, complete one full flow, and confirm in
+PostHog that the events arrived with no `$current_url`, no `$raw_user_agent`, and
+`$ip` showing `0.0.0.0`.
+
 ## Architecture
 
 | Path                | Ownership                                                  |
@@ -120,10 +145,41 @@ directly.
 These are product requirements, not preferences. Do not break them:
 
 - The selected photo and the generated image are never sent to `fetch`, XHR, a form action, a
-  service worker, analytics, or error monitoring.
+  service worker, analytics, or error monitoring — not as a file, not as a data URL, not as EXIF,
+  not as a filename or dimensions. Nothing derived from the photo leaves the device, ever.
 - Neither is persisted to `localStorage`, IndexedDB, or Cache Storage.
-- No third-party scripts, fonts, or asset CDNs.
-- The app fetches only its own static assets from its own origin.
+- The app loads Google Fonts (see `index.html`) and, when configured, PostHog's analytics library —
+  these are the only third-party origins involved, and are the only exceptions to same-origin
+  loading. There are no other third-party scripts, fonts, or asset CDNs.
+
+### Telemetry
+
+`src/lib/telemetry/**` sends a small, fixed set of anonymous product-usage events — see the seven
+variants of `TelemetryEvent` in `src/lib/telemetry/types.ts` for the exhaustive list (e.g.
+"a source button was pressed," "a frame was selected," "the share sheet resolved as cancelled").
+Each event is built field-by-field from a per-event allowlist (`EVENT_FIELDS` in `track.ts`) —
+never a spread of whatever a call site happens to have on hand — so a future call site cannot
+accidentally smuggle something new onto the wire.
+
+- **Off by default.** Telemetry is gated on the `VITE_POSTHOG_KEY` build-time env var. Unset (the
+  default in dev, unit tests, and CI), `track()` is a complete no-op: no network request, no
+  PostHog library load, not even a locally-generated id is minted.
+- **Same-origin transport.** Events go to PostHog through a same-origin reverse proxy (`/ingest`,
+  see `vercel.json`) rather than directly to a posthog.com host, and the `posthog-js` library
+  itself is lazy-loaded on first use so it never delays first paint.
+- **Locked down.** `src/lib/telemetry/posthog.ts` disables autocapture, pageview/pageleave
+  tracking, session replay, heatmaps, surveys, product tours, the in-app chat widget, dead-click
+  and exception autocapture, and Web Vitals — all on by default in PostHog, all off here. See that
+  file's module doc for the full rationale and an explicit list of what could **not** be locked
+  down from application code (IP address handling, in particular).
+- **Deliberately NOT collected:** the photo or generated image in any form; the guest's IP-derived
+  location; raw user agent string; exact browser/OS/device model; screen or viewport dimensions;
+  page URL, referrer, or any query parameter; session replay/screen recording; clicks, taps, form
+  input, or scroll position outside the seven named events; cookies (persistence is
+  `localStorage`-only).
+- **What's approximate even in what IS collected:** `platform` is a coarse ~7-bucket
+  device/browser classification (see `src/lib/telemetry/platform.ts`), not a UA string — by design,
+  it carries negligible entropy per guest.
 
 ## Browser support
 
