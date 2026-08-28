@@ -15,7 +15,14 @@ export type ShareOutcome =
   | { result: 'shared' }
   /** The guest dismissed the OS share sheet. Not an error. */
   | { result: 'cancelled' }
-  /** Sharing failed; the caller should move to the fallback save path. */
+  /** This browser cannot share files at all. Not an error — use the
+   *  download fallback. Distinguished from `failed` so post-event
+   *  reliability analysis can tell "never going to work here" apart from
+   *  "broke unexpectedly". */
+  | { result: 'unavailable'; reason: string }
+  /** Sharing was attempted (the browser claims to support it) but
+   *  `navigator.share()` itself threw for a reason other than the guest
+   *  cancelling; the caller should move to the fallback save path. */
   | { result: 'failed'; reason: string };
 
 export interface ShareService {

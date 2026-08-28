@@ -499,15 +499,32 @@ export function useGuestFlow(): UseGuestFlowResult {
       sharePendingRef.current = true;
       shareService.share(exported).then((outcome) => {
         sharePendingRef.current = false;
-        if (outcome.result === 'shared') {
-          showConfirmationWhenVisible();
-          return;
+        switch (outcome.result) {
+          case 'shared':
+            showConfirmationWhenVisible();
+            return;
+          case 'cancelled':
+            // A normal outcome, not a failure — no confirmation, no error.
+            return;
+          case 'unavailable':
+          case 'failed':
+            dispatch({ type: 'SHARE_UNAVAILABLE_OR_FAILED' });
+            return;
+          default: {
+            // Compile-time exhaustiveness: adding a ShareOutcome variant
+            // without handling it here fails the type check.
+            const exhaustiveCheck: never = outcome;
+            void exhaustiveCheck;
+            // At runtime, fall through to the fallback save screen rather
+            // than throwing. A throw inside this .then() would become an
+            // unhandled rejection and — worse — leave the guest parked on
+            // 'ready' with the share sheet closed and nothing dispatched,
+            // an unrecoverable dead end. The fallback screen still hands
+            // them their finished photo.
+            dispatch({ type: 'SHARE_UNAVAILABLE_OR_FAILED' });
+            return;
+          }
         }
-        if (outcome.result === 'cancelled') {
-          // A normal outcome, not a failure — no confirmation, no error.
-          return;
-        }
-        dispatch({ type: 'SHARE_UNAVAILABLE_OR_FAILED' });
       });
     },
     [showConfirmationWhenVisible],

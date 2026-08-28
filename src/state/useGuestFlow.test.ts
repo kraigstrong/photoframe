@@ -460,6 +460,23 @@ describe('useGuestFlow: sharing and fallback', () => {
     expect(hook.result.current.state).toMatchObject({ status: 'fallbackSave', exported });
   });
 
+  it('falls back to fallbackSave the same way when the browser reports it cannot share files (unavailable, not a throw)', async () => {
+    const shareMock = vi.fn().mockResolvedValue(undefined);
+    navigator.share = shareMock;
+    navigator.canShare = () => false;
+
+    const { hook, exported } = await getToReady();
+    await act(async () => {
+      hook.result.current.saveOrShare();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(hook.result.current.state).toMatchObject({ status: 'fallbackSave', exported });
+    // canShare said no, so navigator.share must never have been invoked.
+    expect(shareMock).not.toHaveBeenCalled();
+  });
+
   it('backToEditing from fallbackSave restores straight to ready with the still-valid export (no re-encode, no stuck "Preparing…")', async () => {
     const originalShare = (navigator as { share?: unknown }).share;
     // @ts-expect-error simulating an unsupported browser
