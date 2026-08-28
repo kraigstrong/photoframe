@@ -156,6 +156,7 @@ export type UseGuestFlowResult = {
   sourceClick: (source: 'camera' | 'library') => void;
   eventName: string;
   privacyMessage: string;
+  telemetryMessage: string;
   cameraFacing: 'user' | 'environment';
   confirmation: ShareConfirmation;
   selectFile: (file: File) => void;
@@ -692,6 +693,7 @@ export function useGuestFlow(): UseGuestFlowResult {
     sourceClick,
     eventName: eventConfig.eventName,
     privacyMessage: eventConfig.privacyMessage,
+    telemetryMessage: eventConfig.telemetryMessage,
     cameraFacing: eventConfig.cameraFacing,
     confirmation,
     selectFile,

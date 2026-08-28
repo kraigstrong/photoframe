@@ -11,6 +11,7 @@ import styles from './LandingScreen.module.css';
 export default function LandingScreen({
   eventName,
   privacyMessage,
+  telemetryMessage,
   previewPhoto,
   cameraFacing,
   overlayReady,
@@ -89,7 +90,10 @@ export default function LandingScreen({
         />
       </div>
 
-      <p className={styles.privacy}>{privacyMessage}</p>
+      <div className={styles.disclosures}>
+        <p className={styles.privacy}>{privacyMessage}</p>
+        <p className={styles.telemetry}>{telemetryMessage}</p>
+      </div>
     </main>
   );
 }

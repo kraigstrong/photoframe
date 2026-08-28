@@ -17,6 +17,8 @@ import type { ExportedImage, Transform, WorkingImage } from '../lib/image/types.
 export type LandingScreenProps = {
   eventName: string;
   privacyMessage: string;
+  /** Telemetry disclosure, rendered directly beneath `privacyMessage`. */
+  telemetryMessage: string;
   /** Same-origin sample-photo URL, shown decoratively in a preview frame. */
   previewPhoto: string;
   /** Passed straight through to the camera file input's `capture` attribute. */

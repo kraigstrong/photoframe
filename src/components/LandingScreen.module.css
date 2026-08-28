@@ -49,6 +49,25 @@
   color: var(--muted-text);
 }
 
+/* Groups the two disclosure lines so the shell's `gap` applies once to the
+ * pair rather than once between each — the landing screen has no vertical
+ * slack on a 375x667 phone, and a second full gap here pushed the copy
+ * below the fold. */
+.disclosures {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.telemetry {
+  margin: 0;
+  max-width: 44ch;
+  font-size: 0.8125rem;
+  color: var(--muted-text);
+  opacity: 0.85;
+}
+
 .actions {
   display: flex;
   flex-direction: column;
