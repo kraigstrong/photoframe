@@ -79,6 +79,10 @@
 import type { CaptureResult, PostHog, PostHogConfig, Properties } from 'posthog-js';
 import { getDeviceId } from './ids.ts';
 
+/** Sent as `$ip` on every event so PostHog never records the guest's real
+ * address. See `sanitizeProperties`. */
+const DISCARDED_IP = '0.0.0.0';
+
 /** Caps the pre-load buffer so a load that never completes (or never even
  * starts, e.g. no network) cannot grow memory usage without bound. */
 const MAX_QUEUE_SIZE = 50;
@@ -177,6 +181,23 @@ export function sanitizeProperties(properties: Properties): Properties {
       clean[key] = properties[key];
     }
   }
+  // Force, never pass through. PostHog's ingestion takes the IP from
+  // `properties.$ip` when present and only falls back to the request's
+  // source address otherwise — and that source address is the guest's:
+  // the /ingest reverse proxy (vercel.json) forwards `x-forwarded-for`,
+  // and a Vercel rewrite cannot strip a request header. So without this
+  // line an ordinary configured deployment persists guest IP addresses
+  // while describing itself as anonymous.
+  //
+  // `$geoip_disable` alone is not enough — it suppresses turning the IP
+  // into a location, not storing the IP.
+  //
+  // Assigned unconditionally rather than allowlisted so that a future SDK
+  // version which starts attaching a real client-side $ip is overwritten
+  // rather than forwarded. `before_send` is the last step before the
+  // request is built, so this wins over `property_denylist` and over
+  // anything PostHog assembled earlier.
+  clean.$ip = DISCARDED_IP;
   return clean;
 }
 

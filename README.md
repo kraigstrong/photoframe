@@ -102,6 +102,28 @@ Static Vite output deployed to Vercel. No server runtime, no serverless function
 4. That URL — the stable production domain, not a preview-deployment URL — is the canonical URL.
    Generate the QR from it (see [QR code](#qr-code) above) only once it's final.
 
+### Telemetry configuration (required before the event)
+
+Telemetry is inert unless `VITE_POSTHOG_KEY` is set, so a deployment without it collects
+nothing. If you do set it, **all three of these are required**, not optional:
+
+- [ ] Set `VITE_POSTHOG_KEY` on **Production and Preview** (Preview too — the device-testing
+      pass runs against a preview URL). The PostHog project API key is publishable by design;
+      it is not a secret.
+- [ ] In PostHog project settings, enable **"Discard IP data"**. The app already forces
+      `$ip` to `0.0.0.0` on every event (see `sanitizeProperties` in
+      `src/lib/telemetry/posthog.ts`), which is what actually stops the guest's address being
+      recorded — the `/ingest` reverse proxy forwards `x-forwarded-for` and a Vercel rewrite
+      cannot strip a request header. This setting is the second, server-side layer in case
+      that client-side one is ever weakened.
+- [ ] In PostHog project settings, confirm **session replay is disabled**. The client sets
+      `disable_session_recording: true`, but replay would record a screen showing a guest's
+      photo, so it is worth confirming at the project level too.
+
+Verify after deploying: open the production URL, complete one full flow, and confirm in
+PostHog that the events arrived with no `$current_url`, no `$raw_user_agent`, and
+`$ip` showing `0.0.0.0`.
+
 ## Architecture
 
 | Path                | Ownership                                                  |

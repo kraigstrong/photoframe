@@ -115,8 +115,21 @@ describe('sanitizeProperties against the real posthog-js property set', () => {
       '$time',
       '$geoip_disable',
       '$process_person_profile',
+      // Forced to a dummy value, never the guest's real address.
+      '$ip',
     ]);
     const leaked = Object.keys(sanitizeProperties(raw)).filter((k) => !allowed.has(k));
     expect(leaked).toEqual([]);
+  });
+});
+
+describe('IP suppression', () => {
+  it('always forces $ip to a dummy value, overwriting a real one', () => {
+    const clean = sanitizeProperties({ ev: 'app_open', $ip: '203.0.113.42' });
+    expect(clean.$ip).toBe('0.0.0.0');
+  });
+
+  it('adds $ip even when the incoming properties have none', () => {
+    expect(sanitizeProperties({ ev: 'app_open' }).$ip).toBe('0.0.0.0');
   });
 });

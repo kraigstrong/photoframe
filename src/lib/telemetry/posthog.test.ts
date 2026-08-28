@@ -125,8 +125,11 @@ describe('posthog transport', () => {
 
       const clean = sanitizeProperties(dirty);
 
-      expect(clean).toEqual({});
-      expect('$ip' in clean).toBe(false);
+      // $ip is the one property that is not merely dropped: it is
+      // overwritten with a dummy, because PostHog reads the real address
+      // from the forwarded request header when properties carry none.
+      expect(clean).toEqual({ $ip: '0.0.0.0' });
+      expect(clean.$ip).not.toBe('203.0.113.5');
       expect('$current_url' in clean).toBe(false);
       expect('$screen_width' in clean).toBe(false);
       expect('$raw_user_agent' in clean).toBe(false);
@@ -159,6 +162,7 @@ describe('posthog transport', () => {
         $insert_id: 'abc123',
         $time: 1234567890,
         $geoip_disable: true,
+        $ip: '0.0.0.0',
       });
     });
   });
