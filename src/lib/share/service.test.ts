@@ -112,7 +112,29 @@ describe('share', () => {
     (navigator as NavShare).canShare = vi.fn().mockReturnValue(true);
 
     const outcome = await shareService.share(makeExportedImage());
-    expect(outcome).toMatchObject({ result: 'failed', reason: expect.stringContaining('broke') });
+    expect(outcome).toMatchObject({
+      result: 'failed',
+      reason: expect.stringContaining('broke'),
+      errorName: 'Error',
+    });
+  });
+
+  it('carries the DOMException name (not its message) in errorName for a non-abort DOMException failure', async () => {
+    (navigator as NavShare).share = vi
+      .fn()
+      .mockRejectedValue(new DOMException('permission denied', 'NotAllowedError'));
+    (navigator as NavShare).canShare = vi.fn().mockReturnValue(true);
+
+    const outcome = await shareService.share(makeExportedImage());
+    expect(outcome).toMatchObject({ result: 'failed', errorName: 'NotAllowedError' });
+  });
+
+  it("falls back to errorName 'Error' when the thrown value isn't an Error/DOMException", async () => {
+    (navigator as NavShare).share = vi.fn().mockRejectedValue('a plain string rejection');
+    (navigator as NavShare).canShare = vi.fn().mockReturnValue(true);
+
+    const outcome = await shareService.share(makeExportedImage());
+    expect(outcome).toMatchObject({ result: 'failed', errorName: 'Error' });
   });
 
   it('works when navigator.canShare is not implemented at all (only navigator.share)', async () => {

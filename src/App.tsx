@@ -43,6 +43,7 @@ export default function App() {
           cameraFacing={flow.cameraFacing}
           overlayReady={flow.overlayReady}
           onSelectFile={flow.selectFile}
+          onSourceClick={flow.sourceClick}
         />
       );
 

@@ -19,6 +19,8 @@ import { eventConfig } from '../config/index.ts';
 import { imageEngine } from '../lib/image/index.ts';
 import type { ExportedImage, Transform, WorkingImage } from '../lib/image/types.ts';
 import { shareService } from '../lib/share/index.ts';
+import { currentPlatform, track } from '../lib/telemetry/index.ts';
+import type { PhotoSource } from '../lib/telemetry/index.ts';
 import type { AppError, AppErrorKind, AppState } from './appState.ts';
 
 const EXPORT_DEBOUNCE_MS = 400;
@@ -149,6 +151,9 @@ export type UseGuestFlowResult = {
   overlays: { id: string; label: string; src: string; thumbnail: string }[];
   selectedOverlayIndex: number;
   selectOverlay: (index: number) => void;
+  /** Records which photo-source button the guest pressed, for telemetry.
+   *  Wired to `LandingScreenProps.onSourceClick`. */
+  sourceClick: (source: 'camera' | 'library') => void;
   eventName: string;
   privacyMessage: string;
   cameraFacing: 'user' | 'environment';
@@ -181,6 +186,38 @@ export function useGuestFlow(): UseGuestFlowResult {
   useLayoutEffect(() => {
     selectedOverlayIndexRef.current = selectedOverlayIndex;
   }, [selectedOverlayIndex]);
+
+  /** The stable config id (never the index or label) of the frame currently
+   * selected, for telemetry. */
+  const currentFrameId = useCallback(
+    (): string => eventConfig.overlays[selectedOverlayIndexRef.current]?.id ?? 'unknown',
+    [],
+  );
+
+  // Fires once per page load, guarded so React StrictMode's development
+  // double-invoke of effects can't double-count a single real session.
+  const appOpenTrackedRef = useRef(false);
+  useEffect(() => {
+    if (appOpenTrackedRef.current) {
+      return;
+    }
+    appOpenTrackedRef.current = true;
+    track({
+      ev: 'app_open',
+      platform: currentPlatform(),
+      canShareFiles: shareService.detect() === 'files',
+    });
+  }, []);
+
+  // Last photo-source button the guest pressed. Not reset after a load
+  // completes: a later photo_load with no preceding click (not normally
+  // reachable) should report the last known source rather than lying about
+  // having none.
+  const lastSourceRef = useRef<PhotoSource | null>(null);
+  const sourceClick = useCallback((source: PhotoSource) => {
+    lastSourceRef.current = source;
+    track({ ev: 'source_click', source });
+  }, []);
 
   const [confirmation, setConfirmation] = useState<ShareConfirmation>(null);
   const confirmationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -274,6 +311,7 @@ export function useGuestFlow(): UseGuestFlowResult {
           }
           failed = true;
           dispatch({ type: 'OVERLAY_FAILED' });
+          track({ ev: 'app_error', kind: 'overlay_load' });
         },
         { once: true },
       );
@@ -309,9 +347,11 @@ export function useGuestFlow(): UseGuestFlowResult {
       },
       () => {
         if (exportOpIdRef.current !== opId) {
+          // A superseded export; not a real failure worth reporting.
           return;
         }
         dispatch({ type: 'EXPORT_FAILED' });
+        track({ ev: 'app_error', kind: 'export_build' });
       },
     );
   }, []);
@@ -370,6 +410,7 @@ export function useGuestFlow(): UseGuestFlowResult {
           );
           lastEditableRef.current = { image, transform };
           dispatch({ type: 'DECODE_SUCCESS', image, transform });
+          track({ ev: 'photo_load', source: lastSourceRef.current, ok: true });
           scheduleExport(image, transform);
         },
         (err: unknown) => {
@@ -378,10 +419,11 @@ export function useGuestFlow(): UseGuestFlowResult {
           }
           if (err instanceof DOMException && err.name === 'AbortError') {
             // Superseded by a newer selection; that selection already owns
-            // the state transition.
+            // the state transition. Not a load failure — no telemetry.
             return;
           }
           dispatch({ type: 'DECODE_FAILED', kind: 'decodeFailed' });
+          track({ ev: 'photo_load', source: lastSourceRef.current, ok: false });
         },
       );
     },
@@ -430,6 +472,10 @@ export function useGuestFlow(): UseGuestFlowResult {
     (index: number) => {
       if (index === selectedOverlayIndexRef.current) {
         return;
+      }
+      const frame = eventConfig.overlays[index]?.id;
+      if (frame) {
+        track({ ev: 'frame_select', frame });
       }
       selectedOverlayIndexRef.current = index;
       setSelectedOverlayIndex(index);
@@ -496,18 +542,32 @@ export function useGuestFlow(): UseGuestFlowResult {
         // firing a second concurrent navigator.share() call.
         return;
       }
+      const frame = currentFrameId();
+      track({ ev: 'export_attempt', via: 'share', frame });
       sharePendingRef.current = true;
       shareService.share(exported).then((outcome) => {
         sharePendingRef.current = false;
         switch (outcome.result) {
           case 'shared':
+            track({ ev: 'export_result', via: 'share', outcome: 'shared', frame });
             showConfirmationWhenVisible();
             return;
           case 'cancelled':
             // A normal outcome, not a failure — no confirmation, no error.
+            track({ ev: 'export_result', via: 'share', outcome: 'cancelled', frame });
             return;
           case 'unavailable':
+            track({ ev: 'export_result', via: 'share', outcome: 'unavailable', frame });
+            dispatch({ type: 'SHARE_UNAVAILABLE_OR_FAILED' });
+            return;
           case 'failed':
+            track({
+              ev: 'export_result',
+              via: 'share',
+              outcome: 'failed',
+              frame,
+              err: outcome.errorName,
+            });
             dispatch({ type: 'SHARE_UNAVAILABLE_OR_FAILED' });
             return;
           default: {
@@ -520,14 +580,16 @@ export function useGuestFlow(): UseGuestFlowResult {
             // unhandled rejection and — worse — leave the guest parked on
             // 'ready' with the share sheet closed and nothing dispatched,
             // an unrecoverable dead end. The fallback screen still hands
-            // them their finished photo.
+            // them their finished photo. No telemetry here: an outcome
+            // variant this build doesn't know about isn't one of the
+            // ExportOutcome values track() can express anyway.
             dispatch({ type: 'SHARE_UNAVAILABLE_OR_FAILED' });
             return;
           }
         }
       });
     },
-    [showConfirmationWhenVisible],
+    [showConfirmationWhenVisible, currentFrameId],
   );
 
   const saveOrShare = useCallback(() => {
@@ -551,9 +613,12 @@ export function useGuestFlow(): UseGuestFlowResult {
     if (current.status !== 'fallbackSave') {
       return;
     }
+    track({ ev: 'export_attempt', via: 'download', frame: currentFrameId() });
     shareService.saveFallback(current.exported);
+    // Deliberately no export_result for the download path: link.click()
+    // gives no observable success/failure signal to report. Do not add one.
     showConfirmationWhenVisible();
-  }, [showConfirmationWhenVisible]);
+  }, [showConfirmationWhenVisible, currentFrameId]);
 
   const backToEditing = useCallback(() => {
     const current = stateRef.current;
@@ -624,6 +689,7 @@ export function useGuestFlow(): UseGuestFlowResult {
     overlays: overlaysForPicker,
     selectedOverlayIndex,
     selectOverlay,
+    sourceClick,
     eventName: eventConfig.eventName,
     privacyMessage: eventConfig.privacyMessage,
     cameraFacing: eventConfig.cameraFacing,

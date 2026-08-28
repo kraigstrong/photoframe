@@ -24,6 +24,9 @@ export type LandingScreenProps = {
   /** Both file inputs stay disabled until the overlay has decoded. */
   overlayReady: boolean;
   onSelectFile: (file: File) => void;
+  /** Fires when the guest presses a photo-source button, before the native
+   *  picker opens. Reports intent; a photo may never actually arrive. */
+  onSourceClick: (source: 'camera' | 'library') => void;
 };
 
 export type DecodingScreenProps = {

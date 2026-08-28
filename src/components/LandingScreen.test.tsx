@@ -12,6 +12,7 @@ function makeProps(overrides: Partial<LandingScreenProps> = {}): LandingScreenPr
     cameraFacing: 'environment',
     overlayReady: true,
     onSelectFile: vi.fn(),
+    onSourceClick: vi.fn(),
     ...overrides,
   };
 }
@@ -78,5 +79,19 @@ describe('LandingScreen', () => {
 
     await user.click(screen.getByRole('button', { name: 'Choose from camera roll' }));
     expect(clickSpies[1]).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports source intent via onSourceClick before opening the native picker', async () => {
+    const user = userEvent.setup();
+    const onSourceClick = vi.fn();
+    render(<LandingScreen {...makeProps({ onSourceClick })} />);
+
+    await user.click(screen.getByRole('button', { name: 'Take a photo' }));
+    expect(onSourceClick).toHaveBeenCalledWith('camera');
+
+    await user.click(screen.getByRole('button', { name: 'Choose from camera roll' }));
+    expect(onSourceClick).toHaveBeenCalledWith('library');
+
+    expect(onSourceClick).toHaveBeenCalledTimes(2);
   });
 });
