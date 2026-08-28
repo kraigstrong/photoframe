@@ -37,7 +37,19 @@ async function capturedPropertiesFromRealLibrary(): Promise<Record<string, unkno
     },
   });
   posthog.capture('photo_load', { ev: 'photo_load', did: 'test-device-id', seq: 1 });
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  // Wait for the real pipeline rather than sleeping a fixed 50ms.
+  // posthog-js assembles properties through its own async work, and a fixed
+  // wait that is comfortable on a dev machine is a coin flip on a loaded CI
+  // runner — these tests would then fail with a confusing "expected
+  // undefined" rather than anything to do with what they actually assert.
+  await vi.waitFor(
+    () => {
+      if (seen.length === 0) {
+        throw new Error('posthog-js has not reached before_send yet');
+      }
+    },
+    { timeout: 5000, interval: 10 },
+  );
   return seen[0] ?? {};
 }
 
