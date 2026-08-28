@@ -124,6 +124,10 @@ Verify after deploying: open the production URL, complete one full flow, and con
 PostHog that the events arrived with no `$current_url`, no `$raw_user_agent`, and
 `$ip` showing `0.0.0.0`.
 
+After the event, see [`docs/telemetry-analysis.md`](docs/telemetry-analysis.md) for how to
+turn the seven events into the funnels and rates this was set up to answer — including the
+caveats that must be reported alongside the numbers.
+
 ## Architecture
 
 | Path                | Ownership                                                  |
