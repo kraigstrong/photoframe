@@ -88,6 +88,96 @@ describe('track', () => {
     expect(body.frame).toBe('panther-prowl');
   });
 
+  // Regression net for the module's whole reason to exist. TypeScript only
+  // excess-property-checks object *literals*, so an event assembled in a
+  // variable can carry extra fields, satisfy TelemetryEvent, and compile
+  // cleanly. track() must drop them rather than serialize them.
+  it('drops properties the caller attached that are not on the allowlist', async () => {
+    vi.stubEnv('VITE_TELEMETRY_URL', ENDPOINT);
+    const beaconSpy = vi.fn().mockReturnValue(true);
+    vi.stubGlobal('navigator', { ...navigator, sendBeacon: beaconSpy });
+
+    const smuggled = {
+      ev: 'photo_load' as const,
+      source: 'camera' as const,
+      ok: true,
+      // None of these may ever reach the wire.
+      filename: 'IMG_1234.HEIC',
+      width: 4032,
+      height: 3024,
+      dataUrl: 'data:image/jpeg;base64,AAAA',
+    };
+
+    const { track } = await import('./track.ts');
+    track(smuggled);
+
+    const [, payload] = beaconSpy.mock.calls[0] as [string, Blob];
+    const text = await payload.text();
+    const body = JSON.parse(text) as Record<string, unknown>;
+
+    expect(Object.keys(body).toSorted()).toEqual(['did', 'ev', 'ok', 'seq', 'sid', 'source', 'v']);
+    expect(text).not.toContain('IMG_1234');
+    expect(text).not.toContain('4032');
+    expect(text).not.toContain('data:image');
+  });
+
+  it('omits an absent optional field rather than serializing it as null', async () => {
+    vi.stubEnv('VITE_TELEMETRY_URL', ENDPOINT);
+    const beaconSpy = vi.fn().mockReturnValue(true);
+    vi.stubGlobal('navigator', { ...navigator, sendBeacon: beaconSpy });
+
+    const { track } = await import('./track.ts');
+    track({ ev: 'export_result', via: 'share', outcome: 'shared', frame: 'design-1' });
+
+    const [, payload] = beaconSpy.mock.calls[0] as [string, Blob];
+    const body = JSON.parse(await payload.text()) as Record<string, unknown>;
+    expect('err' in body).toBe(false);
+  });
+
+  it('carries err when present', async () => {
+    vi.stubEnv('VITE_TELEMETRY_URL', ENDPOINT);
+    const beaconSpy = vi.fn().mockReturnValue(true);
+    vi.stubGlobal('navigator', { ...navigator, sendBeacon: beaconSpy });
+
+    const { track } = await import('./track.ts');
+    track({
+      ev: 'export_result',
+      via: 'share',
+      outcome: 'failed',
+      frame: 'design-1',
+      err: 'NotAllowedError',
+    });
+
+    const [, payload] = beaconSpy.mock.calls[0] as [string, Blob];
+    const body = JSON.parse(await payload.text()) as Record<string, unknown>;
+    expect(body.err).toBe('NotAllowedError');
+  });
+
+  it('envelope fields cannot be shadowed by a caller-supplied value', async () => {
+    vi.stubEnv('VITE_TELEMETRY_URL', ENDPOINT);
+    const beaconSpy = vi.fn().mockReturnValue(true);
+    vi.stubGlobal('navigator', { ...navigator, sendBeacon: beaconSpy });
+
+    const spoofed = {
+      ev: 'source_click' as const,
+      source: 'camera' as const,
+      v: 999,
+      did: 'spoofed-device',
+      sid: 'spoofed-session',
+      seq: 12345,
+    };
+
+    const { track } = await import('./track.ts');
+    track(spoofed);
+
+    const [, payload] = beaconSpy.mock.calls[0] as [string, Blob];
+    const body = JSON.parse(await payload.text()) as Record<string, unknown>;
+    expect(body.v).toBe(1);
+    expect(body.did).not.toBe('spoofed-device');
+    expect(body.sid).not.toBe('spoofed-session');
+    expect(body.seq).toBe(1);
+  });
+
   it('increments seq across successive track() calls', async () => {
     vi.stubEnv('VITE_TELEMETRY_URL', ENDPOINT);
     const beaconSpy = vi.fn().mockReturnValue(true);

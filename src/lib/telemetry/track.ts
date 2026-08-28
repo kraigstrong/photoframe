@@ -11,7 +11,33 @@
  * flow.
  */
 import { getDeviceId, getSessionId, nextSeq } from './ids.ts';
-import type { TelemetryEnvelope, TelemetryEvent } from './types.ts';
+import type { TelemetryEvent } from './types.ts';
+
+/**
+ * The exact fields transmitted for each event. See `TelemetryEnvelope` in
+ * types.ts for the resulting wire shape.
+ *
+ * This is a RUNTIME allowlist, and that is the whole point. TypeScript only
+ * excess-property-checks object *literals*: a caller that assembles an event
+ * in a variable can carry extra properties, still satisfy `TelemetryEvent`,
+ * and compile cleanly. A plain `...event` spread would then serialize those
+ * extras — and one of them could one day be photo-derived (a filename, a
+ * dimension, a hash). The payload is therefore built field by field from
+ * this list, never from whatever the caller happens to hand over, so the
+ * privacy invariant holds no matter what a future call site does.
+ *
+ * Keep in sync with the server-side allowlist in the telemetry endpoint,
+ * which enforces the same thing again on arrival.
+ */
+const EVENT_FIELDS: Record<TelemetryEvent['ev'], readonly string[]> = {
+  app_open: ['platform', 'canShareFiles'],
+  source_click: ['source'],
+  photo_load: ['source', 'ok'],
+  frame_select: ['frame'],
+  export_attempt: ['via', 'frame'],
+  export_result: ['via', 'outcome', 'frame', 'err'],
+  app_error: ['kind'],
+};
 
 export function track(event: TelemetryEvent): void {
   try {
@@ -29,17 +55,28 @@ export function track(event: TelemetryEvent): void {
     // perform — it would fail silently and fall through to a fetch that
     // then needs CORS of its own. Same-origin skips all of that.
 
-    // Envelope fields are spread LAST so they always win: the wire shape's
-    // `v`/`did`/`sid`/`seq` can never be shadowed by a future event variant
-    // that happens to reuse one of those names.
-    const envelope: TelemetryEnvelope = {
-      ...event,
-      v: 1,
-      did: getDeviceId(),
-      sid: getSessionId(),
-      seq: nextSeq(),
-    };
-    const body = JSON.stringify(envelope);
+    // Copy only allowlisted fields off the event; anything else the caller
+    // attached is dropped here and never reaches the wire.
+    const payload: Record<string, unknown> = {};
+    const source = event as Record<string, unknown>;
+    for (const field of EVENT_FIELDS[event.ev]) {
+      const value = source[field];
+      // Skipping `undefined` also keeps optional fields (`err`) absent
+      // rather than serialized as null.
+      if (value !== undefined) {
+        payload[field] = value;
+      }
+    }
+
+    // Envelope fields are assigned LAST so they always win: `ev`/`v`/`did`/
+    // `sid`/`seq` can never be shadowed by an allowlisted event field.
+    payload.ev = event.ev;
+    payload.v = 1;
+    payload.did = getDeviceId();
+    payload.sid = getSessionId();
+    payload.seq = nextSeq();
+
+    const body = JSON.stringify(payload);
 
     const sentViaBeacon =
       typeof navigator.sendBeacon === 'function' &&
