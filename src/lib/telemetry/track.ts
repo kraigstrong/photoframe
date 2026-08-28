@@ -9,8 +9,12 @@
  * `track()` returns `void`, never a promise, never throws, and must never be
  * awaited — a telemetry failure must be incapable of affecting the guest
  * flow.
+ *
+ * The actual transport (PostHog, lazy-loaded and locked down) lives in
+ * `posthog.ts`; this module's only job is building the allowlisted payload.
  */
 import { getDeviceId, getSessionId, nextSeq } from './ids.ts';
+import { capture } from './posthog.ts';
 import type { TelemetryEvent } from './types.ts';
 
 /**
@@ -26,8 +30,9 @@ import type { TelemetryEvent } from './types.ts';
  * this list, never from whatever the caller happens to hand over, so the
  * privacy invariant holds no matter what a future call site does.
  *
- * Keep in sync with the server-side allowlist in the telemetry endpoint,
- * which enforces the same thing again on arrival.
+ * Keep in sync with `ALLOWED_EVENT_PROPERTIES` in `posthog.ts`, which
+ * enforces an independent copy of this same allowlist again, right before
+ * the request is actually built — see that file's module doc.
  */
 const EVENT_FIELDS: Record<TelemetryEvent['ev'], readonly string[]> = {
   app_open: ['platform', 'canShareFiles'],
@@ -41,19 +46,16 @@ const EVENT_FIELDS: Record<TelemetryEvent['ev'], readonly string[]> = {
 
 export function track(event: TelemetryEvent): void {
   try {
-    // Read the endpoint on every call, not at module scope: module-scope
-    // capture cannot be stubbed in tests, and this keeps telemetry inert by
+    // Read the key on every call, not at module scope: module-scope capture
+    // cannot be stubbed in tests, and this keeps telemetry inert by
     // construction whenever the env var is unset — dev, unit tests, and
-    // Playwright all run with it unset.
-    const endpoint = import.meta.env.VITE_TELEMETRY_URL;
-    if (!endpoint) {
+    // Playwright all run with it unset. Checked here, before anything else,
+    // so an inert build never even touches ids.ts (no device/session id is
+    // minted or persisted, and nextSeq() never increments) — matching the
+    // previous sendBeacon-based behavior exactly.
+    if (!import.meta.env.VITE_POSTHOG_KEY) {
       return;
     }
-    // The endpoint must be SAME-ORIGIN (a relative path like `/api/e`).
-    // `application/json` is not a CORS-safelisted content type, so a
-    // cross-origin beacon would need a preflight that sendBeacon cannot
-    // perform — it would fail silently and fall through to a fetch that
-    // then needs CORS of its own. Same-origin skips all of that.
 
     // Copy only allowlisted fields off the event; anything else the caller
     // attached is dropped here and never reaches the wire.
@@ -76,20 +78,7 @@ export function track(event: TelemetryEvent): void {
     payload.sid = getSessionId();
     payload.seq = nextSeq();
 
-    const body = JSON.stringify(payload);
-
-    const sentViaBeacon =
-      typeof navigator.sendBeacon === 'function' &&
-      navigator.sendBeacon(endpoint, new Blob([body], { type: 'application/json' }));
-
-    if (!sentViaBeacon) {
-      fetch(endpoint, {
-        method: 'POST',
-        body,
-        keepalive: true,
-        headers: { 'Content-Type': 'application/json' },
-      }).catch(() => {});
-    }
+    capture(event.ev, payload);
   } catch {
     // Telemetry must never affect the guest flow.
   }
