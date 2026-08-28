@@ -28,13 +28,34 @@ afterEach(() => {
 });
 
 describe('detect', () => {
-  it("returns 'files' when navigator.share exists", () => {
+  it("returns 'files' when navigator.share exists and canShare is not implemented", () => {
     (navigator as NavShare).share = vi.fn();
+    delete (navigator as NavShare).canShare;
+    expect(shareService.detect()).toBe('files');
+  });
+
+  it("returns 'files' when navigator.canShare({files}) returns true", () => {
+    (navigator as NavShare).share = vi.fn();
+    (navigator as NavShare).canShare = vi.fn().mockReturnValue(true);
     expect(shareService.detect()).toBe('files');
   });
 
   it("returns 'unavailable' when navigator.share does not exist", () => {
     delete (navigator as NavShare).share;
+    expect(shareService.detect()).toBe('unavailable');
+  });
+
+  it("returns 'unavailable' when navigator.canShare({files}) returns false", () => {
+    (navigator as NavShare).share = vi.fn();
+    (navigator as NavShare).canShare = vi.fn().mockReturnValue(false);
+    expect(shareService.detect()).toBe('unavailable');
+  });
+
+  it("returns 'unavailable' rather than throwing when navigator.canShare throws", () => {
+    (navigator as NavShare).share = vi.fn();
+    (navigator as NavShare).canShare = vi.fn().mockImplementation(() => {
+      throw new Error('canShare exploded');
+    });
     expect(shareService.detect()).toBe('unavailable');
   });
 
@@ -46,17 +67,17 @@ describe('detect', () => {
 });
 
 describe('share', () => {
-  it("returns 'failed' when navigator.share is unavailable", async () => {
+  it("returns 'unavailable' when navigator.share is unavailable", async () => {
     delete (navigator as NavShare).share;
     const outcome = await shareService.share(makeExportedImage());
-    expect(outcome).toMatchObject({ result: 'failed' });
+    expect(outcome).toMatchObject({ result: 'unavailable' });
   });
 
-  it("returns 'failed' when canShare rejects the file", async () => {
+  it("returns 'unavailable' when canShare rejects the file", async () => {
     (navigator as NavShare).share = vi.fn().mockResolvedValue(undefined);
     (navigator as NavShare).canShare = vi.fn().mockReturnValue(false);
     const outcome = await shareService.share(makeExportedImage());
-    expect(outcome).toMatchObject({ result: 'failed' });
+    expect(outcome).toMatchObject({ result: 'unavailable' });
     expect((navigator as NavShare).share).not.toHaveBeenCalled();
   });
 

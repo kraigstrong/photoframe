@@ -15,10 +15,28 @@ function exportedImageToFile(exported: ExportedImage): File {
   return new File([exported.blob], exported.filename, { type: exported.blob.type });
 }
 
-/** Feature-detects file sharing. Must not throw on any target browser. */
+/**
+ * Feature-detects file sharing. Must not throw on any target browser.
+ *
+ * This is a capability probe: it constructs a dummy zero-byte `File` to ask
+ * `navigator.canShare()` whether image files can be shared at all. It never
+ * touches the guest's actual photo.
+ */
 function detect(): ShareCapability {
-  const nav = navigator as NavigatorWithShare;
-  return typeof nav.share === 'function' ? 'files' : 'unavailable';
+  try {
+    const nav = navigator as NavigatorWithShare;
+    if (typeof nav.share !== 'function') {
+      return 'unavailable';
+    }
+    if (typeof nav.canShare !== 'function') {
+      // Can't probe further — assume capable, matching share()'s behavior.
+      return 'files';
+    }
+    const probe = new File([], 'probe.jpg', { type: 'image/jpeg' });
+    return nav.canShare({ files: [probe] }) ? 'files' : 'unavailable';
+  } catch {
+    return 'unavailable';
+  }
 }
 
 /**
@@ -30,12 +48,12 @@ function detect(): ShareCapability {
 async function share(exported: ExportedImage): Promise<ShareOutcome> {
   const nav = navigator as NavigatorWithShare;
   if (typeof nav.share !== 'function') {
-    return { result: 'failed', reason: 'Web Share API is unavailable in this browser.' };
+    return { result: 'unavailable', reason: 'Web Share API is unavailable in this browser.' };
   }
 
   const file = exportedImageToFile(exported);
   if (typeof nav.canShare === 'function' && !nav.canShare({ files: [file] })) {
-    return { result: 'failed', reason: 'This browser cannot share image files.' };
+    return { result: 'unavailable', reason: 'This browser cannot share image files.' };
   }
 
   try {
