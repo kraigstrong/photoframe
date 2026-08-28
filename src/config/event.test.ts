@@ -32,3 +32,19 @@ describe('eventConfig', () => {
     expect(eventConfig.previewPhoto).not.toMatch(/^https?:\/\//);
   });
 });
+
+describe('telemetryMessage', () => {
+  it('discloses that usage is counted and that the photo is not', () => {
+    const msg = eventConfig.telemetryMessage.toLowerCase();
+    expect(msg).toContain('anonymous');
+    expect(msg).toContain('photo');
+  });
+
+  it('stays short enough to read at a glance on a phone', () => {
+    expect(eventConfig.telemetryMessage.length).toBeLessThanOrEqual(120);
+  });
+
+  it('does not weaken the photo claim, which must still stand on its own', () => {
+    expect(eventConfig.privacyMessage).toContain('not uploaded');
+  });
+});

@@ -21,6 +21,7 @@ export const eventConfig: EventConfig = {
   eventName: 'Panther Prowl 2026',
   pageTitle: 'Panther Prowl 2026 — Photo Frame',
   privacyMessage: 'Your photo stays on your phone. It is not uploaded.',
+  telemetryMessage: 'We count anonymous taps. Never your photo.',
   overlays: [
     { id: 'panther-prowl-2026', label: 'Design 1', asset: overlayAsset, thumbnail: overlayThumb },
     {

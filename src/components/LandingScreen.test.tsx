@@ -7,6 +7,7 @@ import type { LandingScreenProps } from './types.ts';
 function makeProps(overrides: Partial<LandingScreenProps> = {}): LandingScreenProps {
   return {
     eventName: 'Ada & Sam’s Wedding',
+    telemetryMessage: 'We count anonymous taps.',
     privacyMessage: 'Photos never leave your device.',
     previewPhoto: '/preview.jpg',
     cameraFacing: 'environment',
@@ -93,5 +94,12 @@ describe('LandingScreen', () => {
     expect(onSourceClick).toHaveBeenCalledWith('library');
 
     expect(onSourceClick).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('telemetry disclosure', () => {
+  it('renders the telemetry line alongside the photo-privacy line', () => {
+    render(<LandingScreen {...makeProps({ telemetryMessage: 'We count anonymous taps.' })} />);
+    expect(screen.getByText('We count anonymous taps.')).toBeInTheDocument();
   });
 });
