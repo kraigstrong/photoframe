@@ -120,9 +120,26 @@ nothing. If you do set it, **all three of these are required**, not optional:
       `disable_session_recording: true`, but replay would record a screen showing a guest's
       photo, so it is worth confirming at the project level too.
 
-Verify after deploying: open the production URL, complete one full flow, and confirm in
-PostHog that the events arrived with no `$current_url`, no `$raw_user_agent`, and
-`$ip` showing `0.0.0.0`.
+Verify after deploying, **in this order** — the first check catches a failure the app
+itself cannot report, because `track()` swallows every transport error by design:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+  -H 'Content-Type: application/json' -d '{}' \
+  https://photoframe-nine.vercel.app/ingest/e/
+```
+
+- **400** is correct — that is PostHog rejecting an empty payload, which proves the
+  reverse proxy reached it.
+- **404** means the `vercel.json` rewrite did not match and Vercel answered instead
+  (check for `x-vercel-error: NOT_FOUND`). Every event would be dropped silently.
+  Note the **trailing slash**: `posthog-js` posts to `/e/`, and a `:path*` matcher
+  does not match it — the rewrites use `:path(.*)` for exactly this reason. Do not
+  "simplify" them.
+
+Then open the production URL, complete one full flow, and confirm in PostHog that the
+events arrived with no `$current_url`, no `$raw_user_agent`, and `$ip` showing
+`0.0.0.0`.
 
 After the event, see [`docs/telemetry-analysis.md`](docs/telemetry-analysis.md) for how to
 turn the seven events into the funnels and rates this was set up to answer — including the
