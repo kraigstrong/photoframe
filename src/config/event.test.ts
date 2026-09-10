@@ -13,8 +13,19 @@ describe('eventConfig', () => {
     expect(eventConfig.jpegQuality).toBeLessThanOrEqual(1);
   });
 
-  it('states that the photo is not uploaded or stored', () => {
-    expect(eventConfig.privacyMessage.toLowerCase()).toContain('not upload');
+  it('claims the photo does not leave the device', () => {
+    // Asserts the CLAIM, not one literal phrasing of it. The wording is
+    // allowed to change; what must not silently disappear is the promise
+    // itself, which is the whole reason a guest hands over a photo.
+    const msg = eventConfig.privacyMessage.toLowerCase();
+    expect(msg).toContain('your photo');
+    expect(msg).toMatch(/never leaves|not uploaded|does not leave/);
+  });
+
+  it('stays short enough to hold one line on a 375px phone', () => {
+    // The landing screen has no vertical slack at 375x667, and `.privacy`
+    // is deliberately width-unconstrained so this line does not wrap.
+    expect(eventConfig.privacyMessage.length).toBeLessThanOrEqual(40);
   });
 
   it('offers more than one overlay design for the editing-screen picker', () => {
@@ -30,21 +41,5 @@ describe('eventConfig', () => {
 
   it('references a same-origin preview photo', () => {
     expect(eventConfig.previewPhoto).not.toMatch(/^https?:\/\//);
-  });
-});
-
-describe('telemetryMessage', () => {
-  it('discloses that usage is counted and that the photo is not', () => {
-    const msg = eventConfig.telemetryMessage.toLowerCase();
-    expect(msg).toContain('anonymous');
-    expect(msg).toContain('photo');
-  });
-
-  it('stays short enough to read at a glance on a phone', () => {
-    expect(eventConfig.telemetryMessage.length).toBeLessThanOrEqual(120);
-  });
-
-  it('does not weaken the photo claim, which must still stand on its own', () => {
-    expect(eventConfig.privacyMessage).toContain('not uploaded');
   });
 });

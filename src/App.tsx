@@ -39,7 +39,6 @@ export default function App() {
         <LandingScreen
           eventName={flow.eventName}
           privacyMessage={flow.privacyMessage}
-          telemetryMessage={flow.telemetryMessage}
           previewPhoto={flow.previewPhoto}
           cameraFacing={flow.cameraFacing}
           overlayReady={flow.overlayReady}
