@@ -15,6 +15,14 @@
     {
       "source": "/ingest/:path(.*)",
       "destination": "https://us.i.posthog.com/:path"
+    },
+    {
+      "source": "/panther-prowl-2026",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/panther-prowl-2026/",
+      "destination": "/index.html"
     }
   ],
   "headers": [

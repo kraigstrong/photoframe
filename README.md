@@ -78,11 +78,18 @@ bounds, and none ever pans or zooms with the photo.
 
 ## QR code
 
-Generate the QR only after the canonical production URL is live over HTTPS:
+Generate the QR only after the canonical production URL is live over HTTPS. For this
+deployment that is:
 
 ```bash
-npm run generate:qr -- --url https://your-event-url
+npm run generate:qr -- --url https://frame.brightbench.app/panther-prowl-2026
 ```
+
+The event slug in that path is deliberate. The app ignores the path today — one deployment
+still serves exactly one configured event — but `vercel.json` rewrites `/panther-prowl-2026`
+to `index.html` so the URL is valid now, and stays valid unchanged if per-event path routing
+is added later. **Do not remove that rewrite**: it looks like dead config, and deleting it
+404s every printed QR code. `tests/vercel-config.test.ts` guards it.
 
 This writes `qr/event-qr.svg` (use this for print) and `qr/event-qr.png`. The `qr/` directory is
 git-ignored — regenerate it rather than committing it. HTTP URLs are rejected unless you pass
@@ -99,8 +106,11 @@ Static Vite output deployed to Vercel. No server runtime, no serverless function
    directory are already set in `vercel.json`).
 2. Deploy. Vercel serves the production build over HTTPS automatically.
 3. Confirm the deployed URL loads and that reloading the page (not just the initial load) works.
-4. That URL — the stable production domain, not a preview-deployment URL — is the canonical URL.
-   Generate the QR from it (see [QR code](#qr-code) above) only once it's final.
+4. Add the custom domain (Project → Settings → Domains). This deployment uses
+   **`frame.brightbench.app`**; because `brightbench.app` is on Vercel nameservers, the DNS
+   record and certificate are issued automatically.
+5. That domain — not a preview-deployment URL and not the generated `*.vercel.app` one — is the
+   canonical URL. Generate the QR from it (see [QR code](#qr-code) above) only once it's final.
 
 ### Telemetry configuration (required before the event)
 
@@ -126,7 +136,7 @@ itself cannot report, because `track()` swallows every transport error by design
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' -X POST \
   -H 'Content-Type: application/json' -d '{}' \
-  https://photoframe-nine.vercel.app/ingest/e/
+  https://frame.brightbench.app/ingest/e/
 ```
 
 - **400** is correct — that is PostHog rejecting an empty payload, which proves the
