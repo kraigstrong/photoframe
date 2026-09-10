@@ -29,16 +29,10 @@ export type EventConfig = {
   eventName: string;
   /** Value used for `document.title`. */
   pageTitle: string;
-  /** Privacy reassurance. Must state the photo is not uploaded or stored. */
+  /** Privacy reassurance. Must state that the photo does not leave the
+   * device. Kept to a single short line so it fits one line on a 375px
+   * phone — see `.privacy` in `LandingScreen.module.css`. */
   privacyMessage: string;
-  /** Telemetry disclosure, shown directly beneath `privacyMessage`.
-   *
-   * The app sends a small set of anonymous product-usage events (see
-   * `src/lib/telemetry/types.ts`), so saying nothing would leave the
-   * landing screen quietly incomplete. Keep it to one short line a parent
-   * can read at a glance, and keep the boundary explicit: we count
-   * interactions, we never receive the photo. */
-  telemetryMessage: string;
   /** The frame designs the guest can choose between on the editing screen.
    * Always at least one; the picker UI only appears when there's more than
    * one. */

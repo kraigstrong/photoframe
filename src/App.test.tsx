@@ -29,7 +29,6 @@ function baseFlow(overrides: Partial<UseGuestFlowResult>): UseGuestFlowResult {
     selectOverlay: vi.fn(),
     sourceClick: vi.fn(),
     eventName: eventConfig.eventName,
-    telemetryMessage: 'We count anonymous taps.',
     privacyMessage: eventConfig.privacyMessage,
     cameraFacing: eventConfig.cameraFacing,
     confirmation: null,
